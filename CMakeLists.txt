@@ -863,16 +863,18 @@ endif()
 
 if(CAPSTONE_BUILD_CSTEST)
     include(ExternalProject)
+    set(CMOCKA_INCLUDE_DIR ${CMAKE_CURRENT_BINARY_DIR}/extern/src/cmocka_ext/include)
+    set(CMOCKA_LIB_DIR ${CMAKE_CURRENT_BINARY_DIR}/extern/src/cmocka_ext-build/src/)
     ExternalProject_Add(cmocka_ext
         PREFIX extern
         GIT_REPOSITORY "https://git.cryptomilk.org/projects/cmocka.git"
         GIT_TAG "origin/stable-1.1"
+        GIT_SHALLOW true
         CONFIGURE_COMMAND cmake -DBUILD_SHARED_LIBS=OFF ../cmocka_ext/
+        BUILD_BYPRODUCTS ${CMOCKA_LIB_DIR}/libcmocka.a
         BUILD_COMMAND cmake --build . --config Release
         INSTALL_COMMAND ""
     )
-    set(CMOCKA_INCLUDE_DIR ${CMAKE_CURRENT_BINARY_DIR}/extern/src/cmocka_ext/include)
-    set(CMOCKA_LIB_DIR ${CMAKE_CURRENT_BINARY_DIR}/extern/src/cmocka_ext-build/src/)
     add_library(cmocka STATIC IMPORTED)
     set_target_properties(cmocka PROPERTIES IMPORTED_LOCATION ${CMOCKA_LIB_DIR}/libcmocka.a)
 
