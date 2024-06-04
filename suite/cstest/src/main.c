@@ -23,6 +23,7 @@ static single_dict arches[] = {
 	{"CS_ARCH_TRICORE", CS_ARCH_TRICORE},
 	{"CS_ARCH_ALPHA", CS_ARCH_ALPHA},
 	{"CS_ARCH_HPPA", CS_ARCH_HPPA},
+	{"CS_ARCH_XTENSA", CS_ARCH_XTENSA},
 };
 
  static single_dict modes[] = {

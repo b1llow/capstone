@@ -11,11 +11,15 @@
 
 void print_string_hex(const char *comment, unsigned char *str, size_t len);
 
-static struct {
+typedef struct {
 	const char *name;
 	cs_arch arch;
 	cs_mode mode;
-} all_archs[] = {
+} Arch;
+
+// clang-format off
+
+static Arch all_archs[] = {
 	{ "arm", CS_ARCH_ARM, CS_MODE_ARM },
 	{ "armb", CS_ARCH_ARM, CS_MODE_ARM | CS_MODE_BIG_ENDIAN },
 	{ "armbe", CS_ARCH_ARM, CS_MODE_ARM | CS_MODE_BIG_ENDIAN },
@@ -122,8 +126,11 @@ static struct {
 	{ "hppa20be", CS_ARCH_HPPA, CS_MODE_HPPA_20 | CS_MODE_BIG_ENDIAN },
 	{ "hppa20w", CS_ARCH_HPPA, CS_MODE_HPPA_20W | CS_MODE_LITTLE_ENDIAN },
 	{ "hppa20wbe", CS_ARCH_HPPA, CS_MODE_HPPA_20W | CS_MODE_BIG_ENDIAN },
+	{ "xtensa", CS_ARCH_XTENSA, CS_MODE_LITTLE_ENDIAN },
 	{ NULL }
 };
+
+// clang-format on
 
 static void print_details(csh handle, cs_arch arch, cs_mode md, cs_insn *ins);
 
@@ -168,9 +175,9 @@ static uint8_t *preprocess(char *code, size_t *size)
 	result = (uint8_t *)malloc(strlen(code));
 	if (result != NULL) {
 		while (code[i] != '\0') {
-			if (isxdigit(code[i]) && isxdigit(code[i+1])) {
+			if (isxdigit(code[i]) && isxdigit(code[i + 1])) {
 				high = 16 * char_to_hexnum(code[i]);
-				low = char_to_hexnum(code[i+1]);
+				low = char_to_hexnum(code[i + 1]);
 				result[j] = high + low;
 				i++;
 				j++;
@@ -185,8 +192,10 @@ static uint8_t *preprocess(char *code, size_t *size)
 
 static void usage(char *prog)
 {
-	printf("Cstool for Capstone Disassembler Engine v%u.%u.%u\n\n", CS_VERSION_MAJOR, CS_VERSION_MINOR, CS_VERSION_EXTRA);
-	printf("Syntax: %s [-d|-a|-r|-s|-u|-v] <arch+mode> <assembly-hexstring> [start-address-in-hex-format]\n", prog);
+	printf("Cstool for Capstone Disassembler Engine v%u.%u.%u\n\n",
+	       CS_VERSION_MAJOR, CS_VERSION_MINOR, CS_VERSION_EXTRA);
+	printf("Syntax: %s [-d|-a|-r|-s|-u|-v] <arch+mode> <assembly-hexstring> [start-address-in-hex-format]\n",
+	       prog);
 	printf("\nThe following <arch+mode> options are supported:\n");
 
 	if (cs_support(CS_ARCH_X86)) {
@@ -342,6 +351,10 @@ static void usage(char *prog)
 		printf("        tc162       tricore V1.6.2\n");
 	}
 
+	if (cs_support(CS_ARCH_XTENSA)) {
+		printf("        xtensa      xtensa\n");
+	}
+
 	printf("\nExtra options:\n");
 	printf("        -d show detailed information of the instructions\n");
 	printf("        -r show detailed information of the real instructions (even for alias)\n");
@@ -355,80 +368,97 @@ static void print_details(csh handle, cs_arch arch, cs_mode md, cs_insn *ins)
 {
 	printf("\tID: %u (%s)\n", ins->id, cs_insn_name(handle, ins->id));
 	if (ins->is_alias) {
-		printf("\tIs alias: %" PRIu64 " (%s) ", ins->alias_id, cs_insn_name(handle, ins->alias_id));
-		printf("with %s operand set\n", ins->usesAliasDetails ? "ALIAS" : "REAL");
+		printf("\tIs alias: %" PRIu64 " (%s) ", ins->alias_id,
+		       cs_insn_name(handle, ins->alias_id));
+		printf("with %s operand set\n",
+		       ins->usesAliasDetails ? "ALIAS" : "REAL");
 	}
 
-	switch(arch) {
-		case CS_ARCH_X86:
-			print_insn_detail_x86(handle, md, ins);
+	switch (arch) {
+	case CS_ARCH_X86:
+		print_insn_detail_x86(handle, md, ins);
+		break;
+	case CS_ARCH_ARM:
+		print_insn_detail_arm(handle, ins);
+		break;
+	case CS_ARCH_AARCH64:
+		print_insn_detail_aarch64(handle, ins);
+		break;
+	case CS_ARCH_MIPS:
+		print_insn_detail_mips(handle, ins);
+		break;
+	case CS_ARCH_PPC:
+		print_insn_detail_ppc(handle, ins);
+		break;
+	case CS_ARCH_SPARC:
+		print_insn_detail_sparc(handle, ins);
+		break;
+	case CS_ARCH_SYSZ:
+		print_insn_detail_sysz(handle, ins);
+		break;
+	case CS_ARCH_XCORE:
+		print_insn_detail_xcore(handle, ins);
+		break;
+	case CS_ARCH_M68K:
+		print_insn_detail_m68k(handle, ins);
+		break;
+	case CS_ARCH_TMS320C64X:
+		print_insn_detail_tms320c64x(handle, ins);
+		break;
+	case CS_ARCH_M680X:
+		print_insn_detail_m680x(handle, ins);
+		break;
+	case CS_ARCH_EVM:
+		print_insn_detail_evm(handle, ins);
+		break;
+	case CS_ARCH_WASM:
+		print_insn_detail_wasm(handle, ins);
+		break;
+	case CS_ARCH_MOS65XX:
+		print_insn_detail_mos65xx(handle, ins);
+		break;
+	case CS_ARCH_BPF:
+		print_insn_detail_bpf(handle, ins);
+		break;
+	case CS_ARCH_RISCV:
+		print_insn_detail_riscv(handle, ins);
+		break;
+	case CS_ARCH_SH:
+		print_insn_detail_sh(handle, ins);
+		break;
+	case CS_ARCH_TRICORE:
+		print_insn_detail_tricore(handle, ins);
+		break;
+	case CS_ARCH_ALPHA:
+		print_insn_detail_alpha(handle, ins);
+		break;
+	case CS_ARCH_HPPA:
+		print_insn_detail_hppa(handle, ins);
+		break;
+	case CS_ARCH_XTENSA: {
+		char *buf = NULL;
+		size_t sz = 0;
+		FILE *f = open_memstream(&buf, &sz);
+		if (!f) {
 			break;
-		case CS_ARCH_ARM:
-			print_insn_detail_arm(handle, ins);
-			break;
-		case CS_ARCH_AARCH64:
-			print_insn_detail_aarch64(handle, ins);
-			break;
-		case CS_ARCH_MIPS:
-			print_insn_detail_mips(handle, ins);
-			break;
-		case CS_ARCH_PPC:
-			print_insn_detail_ppc(handle, ins);
-			break;
-		case CS_ARCH_SPARC:
-			print_insn_detail_sparc(handle, ins);
-			break;
-		case CS_ARCH_SYSZ:
-			print_insn_detail_sysz(handle, ins);
-			break;
-		case CS_ARCH_XCORE:
-			print_insn_detail_xcore(handle, ins);
-			break;
-		case CS_ARCH_M68K:
-			print_insn_detail_m68k(handle, ins);
-			break;
-		case CS_ARCH_TMS320C64X:
-			print_insn_detail_tms320c64x(handle, ins);
-			break;
-		case CS_ARCH_M680X:
-			print_insn_detail_m680x(handle, ins);
-			break;
-		case CS_ARCH_EVM:
-			print_insn_detail_evm(handle, ins);
-			break;
-		case CS_ARCH_WASM:
-			print_insn_detail_wasm(handle, ins);
-			break;
-		case CS_ARCH_MOS65XX:
-			print_insn_detail_mos65xx(handle, ins);
-			break;
-		case CS_ARCH_BPF:
-			print_insn_detail_bpf(handle, ins);
-			break;
-		case CS_ARCH_RISCV:
-			print_insn_detail_riscv(handle, ins);
-			break;
-		case CS_ARCH_SH:
-			print_insn_detail_sh(handle, ins);
-			break;
-		case CS_ARCH_TRICORE:
-			print_insn_detail_tricore(handle, ins);
-			break;
-		case CS_ARCH_ALPHA:
-			print_insn_detail_alpha(handle, ins);
-			break;
-		case CS_ARCH_HPPA:
-			print_insn_detail_hppa(handle, ins);
-			break;
-		default: break;
+		}
+		print_insn_detail_xtensa(handle, ins, f);
+		fclose(f);
+		printf("%s", buf);
+		free(buf);
+		break;
+	}
+	default:
+		break;
 	}
 
 	if (ins->detail && ins->detail->groups_count) {
 		int j;
 
 		printf("\tGroups: ");
-		for(j = 0; j < ins->detail->groups_count; j++) {
-			printf("%s ", cs_group_name(handle, ins->detail->groups[j]));
+		for (j = 0; j < ins->detail->groups_count; j++) {
+			printf("%s ",
+			       cs_group_name(handle, ins->detail->groups[j]));
 		}
 		printf("\n");
 	}
@@ -455,123 +485,53 @@ int main(int argc, char **argv)
 	bool set_real_detail = false;
 	int args_left;
 
-	while ((c = getopt (argc, argv, "rasudhv")) != -1) {
+	while ((c = getopt(argc, argv, "rasudhv")) != -1) {
 		switch (c) {
-			case 'a':
-				custom_reg_alias = true;
-				break;
-			case 'r':
-				set_real_detail = true;
-				break;
-			case 's':
-				skipdata = true;
-				break;
-			case 'u':
-				unsigned_flag = true;
-				break;
-			case 'd':
-				detail_flag = true;
-				break;
-			case 'v':
-				printf("cstool for Capstone Disassembler, v%u.%u.%u\n", CS_VERSION_MAJOR, CS_VERSION_MINOR, CS_VERSION_EXTRA);
+		case 'a':
+			custom_reg_alias = true;
+			break;
+		case 'r':
+			set_real_detail = true;
+			break;
+		case 's':
+			skipdata = true;
+			break;
+		case 'u':
+			unsigned_flag = true;
+			break;
+		case 'd':
+			detail_flag = true;
+			break;
+		case 'v':
+			printf("cstool for Capstone Disassembler, v%u.%u.%u\n",
+			       CS_VERSION_MAJOR, CS_VERSION_MINOR,
+			       CS_VERSION_EXTRA);
 
-				printf("Capstone build: ");
-				if (cs_support(CS_ARCH_X86)) {
-					printf("x86=1 ");
-				}
+			printf("Capstone build: ");
+			if (cs_support(CS_SUPPORT_DIET)) {
+				printf("diet=1 ");
+			}
 
-				if (cs_support(CS_ARCH_ARM)) {
-					printf("arm=1 ");
-				}
+			if (cs_support(CS_SUPPORT_X86_REDUCE)) {
+				printf("x86_reduce=1 ");
+			}
 
-				if (cs_support(CS_ARCH_AARCH64)) {
-					printf("aarch64=1 ");
+			for (unsigned ia = 0;
+			     ia < sizeof(all_archs) / sizeof(Arch); ++ia) {
+				Arch *a = all_archs + ia;
+				if (a->name && cs_support(a->arch)) {
+					printf("%s=1 ", a->name);
 				}
+			}
 
-				if (cs_support(CS_ARCH_MIPS)) {
-					printf("mips=1 ");
-				}
-
-				if (cs_support(CS_ARCH_PPC)) {
-					printf("ppc=1 ");
-				}
-
-				if (cs_support(CS_ARCH_SPARC)) {
-					printf("sparc=1 ");
-				}
-
-				if (cs_support(CS_ARCH_SYSZ)) {
-					printf("sysz=1 ");
-				}
-
-				if (cs_support(CS_ARCH_XCORE)) {
-					printf("xcore=1 ");
-				}
-
-				if (cs_support(CS_ARCH_M68K)) {
-					printf("m68k=1 ");
-				}
-
-				if (cs_support(CS_ARCH_TMS320C64X)) {
-					printf("tms320c64x=1 ");
-				}
-
-				if (cs_support(CS_ARCH_M680X)) {
-					printf("m680x=1 ");
-				}
-
-				if (cs_support(CS_ARCH_EVM)) {
-					printf("evm=1 ");
-				}
-
-				if (cs_support(CS_ARCH_WASM)) {
-					printf("wasm=1 ");
-				}
-
-				if (cs_support(CS_ARCH_MOS65XX)) {
-					printf("mos65xx=1 ");
-				}
-
-				if (cs_support(CS_ARCH_BPF)) {
-					printf("bpf=1 ");
-				}
-
-				if (cs_support(CS_ARCH_RISCV)) {
-					printf("riscv=1 ");
-				}
-
-				if (cs_support(CS_ARCH_SH)) {
-					printf("sh=1 ");
-				}
-
-				if (cs_support(CS_SUPPORT_DIET)) {
-					printf("diet=1 ");
-				}
-
-				if (cs_support(CS_SUPPORT_X86_REDUCE)) {
-					printf("x86_reduce=1 ");
-				}
-
-				if (cs_support(CS_ARCH_TRICORE)) {
-					printf("tricore=1 ");
-				}
-
-				if (cs_support(CS_ARCH_ALPHA)) {
-					printf("alpha=1 ");
-				}
-				
-				if (cs_support(CS_ARCH_HPPA)) {
-					printf("hppa=1 ");
-				}
-
-				printf("\n");
-				return 0;
-			case 'h':
-				usage(argv[0]);
-				return 0;
-			default:
-				usage(argv[0]);
-				return -1;
+			printf("\n");
+			return 0;
+		case 'h':
+			usage(argv[0]);
+			return 0;
+		default:
+			usage(argv[0]);
+			return -1;
 		}
 	}
 
@@ -600,16 +560,19 @@ int main(int argc, char **argv)
 	for (i = 0; all_archs[i].name; i++) {
 		if (!strcmp(all_archs[i].name, mode)) {
 			arch = all_archs[i].arch;
-			err = cs_open(all_archs[i].arch, all_archs[i].mode, &handle);
+			err = cs_open(all_archs[i].arch, all_archs[i].mode,
+				      &handle);
 			if (!err) {
 				md = all_archs[i].mode;
-				if (strstr (mode, "att")) {
-					cs_option(handle, CS_OPT_SYNTAX, CS_OPT_SYNTAX_ATT);
+				if (strstr(mode, "att")) {
+					cs_option(handle, CS_OPT_SYNTAX,
+						  CS_OPT_SYNTAX_ATT);
 				}
 
 				// turn on SKIPDATA mode
 				if (skipdata)
-					cs_option(handle, CS_OPT_SKIPDATA, CS_OPT_ON);
+					cs_option(handle, CS_OPT_SKIPDATA,
+						  CS_OPT_ON);
 			}
 			break;
 		}
@@ -648,7 +611,7 @@ int main(int argc, char **argv)
 		for (i = 0; i < count; i++) {
 			int j;
 
-			printf("%2"PRIx64"  ", insn[i].address);
+			printf("%2" PRIx64 "  ", insn[i].address);
 			for (j = 0; j < insn[i].size; j++) {
 				if (j > 0)
 					putchar(' ');

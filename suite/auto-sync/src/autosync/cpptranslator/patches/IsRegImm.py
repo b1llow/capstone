@@ -12,7 +12,7 @@ class IsOperandRegImm(Patch):
     Patch   OPERAND.isReg()
     to      MCOperand_isReg(OPERAND)
 
-    Same for isImm()
+    Same for isImm() | isExpr()
     """
 
     def __init__(self, priority: int):
@@ -23,7 +23,7 @@ class IsOperandRegImm(Patch):
             "(call_expression"
             "    (field_expression"
             "        ((_) @operand)"
-            '        ((field_identifier) @field_id (#match? @field_id "is(Reg|Imm)"))'
+            '        ((field_identifier) @field_id (#match? @field_id "is(Reg|Imm|Expr)"))'
             "    )"
             "    (argument_list)"
             ") @is_operand"

@@ -5,6 +5,9 @@ if(CMAKE_SOURCE_DIR STREQUAL CMAKE_BINARY_DIR)
     message(FATAL_ERROR "In-tree builds are not supported. Run CMake from a separate directory: cmake -B build")
 endif()
 
+set(BUILD_RPATH_USE_ORIGIN true)
+#set(CMAKE_C_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=address,undefined -fno-omit-frame-pointer -g -O3 -Wno-deprecated-declarations")
+
 # Detect whether capstone is compiled as top-level or a subdirectory
 set(PROJECT_IS_TOP_LEVEL OFF)
 if(CMAKE_CURRENT_SOURCE_DIR STREQUAL CMAKE_SOURCE_DIR)
@@ -81,8 +84,8 @@ if(APPLE AND NOT CAPSTONE_BUILD_MACOS_THIN)
     set(CMAKE_OSX_ARCHITECTURES "x86_64;arm64")
 endif()
 
-set(SUPPORTED_ARCHITECTURES ARM AARCH64 M68K MIPS PPC SPARC SYSZ XCORE X86 TMS320C64X M680X EVM MOS65XX WASM BPF RISCV SH TRICORE ALPHA HPPA)
-set(SUPPORTED_ARCHITECTURE_LABELS ARM AARCH64 M68K MIPS PowerPC Sparc SystemZ XCore x86 TMS320C64x M680x EVM MOS65XX WASM BPF RISCV SH TriCore Alpha HPPA)
+set(SUPPORTED_ARCHITECTURES ARM AARCH64 M68K MIPS PPC SPARC SYSZ XCORE X86 TMS320C64X M680X EVM MOS65XX WASM BPF RISCV SH TRICORE ALPHA HPPA XTENSA)
+set(SUPPORTED_ARCHITECTURE_LABELS ARM AARCH64 M68K MIPS PowerPC Sparc SystemZ XCore x86 TMS320C64x M680x EVM MOS65XX WASM BPF RISCV SH TriCore Alpha HPPA Xtensa)
 
 list(LENGTH SUPPORTED_ARCHITECTURES count)
 math(EXPR count "${count}-1")
@@ -188,6 +191,7 @@ set(HEADERS_COMMON
     include/capstone/sh.h
     include/capstone/alpha.h
     include/capstone/hppa.h
+    include/capstone/xtensa.h
 )
 
 set(TEST_SOURCES test_basic.c test_detail.c test_skipdata.c test_iter.c)
@@ -654,6 +658,22 @@ if(CAPSTONE_HPPA_SUPPORT)
     set(TEST_SOURCES ${TEST_SOURCES} test_hppa.c)
 endif()
 
+if(CAPSTONE_XTENSA_SUPPORT)
+    add_definitions(-DCAPSTONE_HAS_XTENSA)
+    set(SOURCES_XTENSA
+        arch/Xtensa/XtensaDisassembler.c
+        arch/Xtensa/XtensaInstPrinter.c
+        arch/Xtensa/XtensaMapping.c
+        arch/Xtensa/XtensaModule.c
+    )
+    set(HEADERS_XTENSA
+        arch/Xtensa/XtensaDisassembler.h
+        arch/Xtensa/XtensaInstPrinter.h
+        arch/Xtensa/XtensaMapping.h
+        arch/Xtensa/XtensaModule.h
+    )
+endif()
+
 if (CAPSTONE_OSXKERNEL_SUPPORT)
     add_definitions(-DCAPSTONE_HAS_OSXKERNEL)
 endif()
@@ -680,6 +700,7 @@ set(ALL_SOURCES
     ${SOURCES_TRICORE}
     ${SOURCES_ALPHA}
     ${SOURCES_HPPA}
+    ${SOURCES_XTENSA}
 )
 
 set(ALL_HEADERS
@@ -705,6 +726,7 @@ set(ALL_HEADERS
     ${HEADERS_TRICORE}
     ${HEADERS_ALPHA}
     ${HEADERS_HPPA}
+    ${HEADERS_XTENSA}
 )
 
 ## properties
@@ -770,6 +792,7 @@ source_group("Source\\SH" FILES ${SOURCES_SH})
 source_group("Source\\TriCore" FILES ${SOURCES_TRICORE})
 source_group("Source\\Alpha" FILES ${SOURCES_ALPHA})
 source_group("Source\\HPPA" FILES ${SOURCES_HPPA})
+source_group("Source\\Xtensa" FILES ${SOURCES_XTENSA})
 
 source_group("Include\\Common" FILES ${HEADERS_COMMON})
 source_group("Include\\Engine" FILES ${HEADERS_ENGINE})
@@ -793,6 +816,7 @@ source_group("Include\\SH" FILES ${HEADERS_SH})
 source_group("Include\\TriCore" FILES ${HEADERS_TRICORE})
 source_group("Include\\Alpha" FILES ${HEADERS_ALPHA})
 source_group("Include\\HPPA" FILES ${HEADERS_HPPA})
+source_group("Include\\Xtensa" FILES ${HEADERS_XTENSA})
 
 ## installation
 if(CAPSTONE_INSTALL)
@@ -851,10 +875,16 @@ if(CAPSTONE_INSTALL)
     endif()
 endif()
 
+if (CAPSTONE_BUILD_CSTOOL OR CAPSTONE_BUILD_CSTEST)
+    file(GLOB CSTOOL_SRC cstool/cstool_*.c)
+    add_library(cs_print OBJECT ${CSTOOL_SRC})
+    target_link_libraries(cs_print PUBLIC capstone)
+endif ()
+
 if(CAPSTONE_BUILD_CSTOOL)
-    file(GLOB CSTOOL_SRC cstool/*.c)
+    file(GLOB CSTOOL_SRC cstool/cstool.c)
     add_executable(cstool ${CSTOOL_SRC})
-    target_link_libraries(cstool PRIVATE capstone)
+    target_link_libraries(cstool PRIVATE capstone cs_print)
 
     if(CAPSTONE_INSTALL)
         install(TARGETS cstool EXPORT capstone-targets DESTINATION ${CMAKE_INSTALL_BINDIR})

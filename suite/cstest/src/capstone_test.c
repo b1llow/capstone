@@ -205,6 +205,9 @@ int set_function(int arch)
 		case CS_ARCH_HPPA:
 			function = get_detail_hppa;
 			break;
+		case CS_ARCH_XTENSA:
+			function = get_detail_xtensa;
+			break;
 		default:
 			return -1;
 	}

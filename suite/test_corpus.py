@@ -4,22 +4,23 @@ import sys
 import os
 from capstone import *
 
+
 def test_file(fname):
-    print("Test %s" %fname);
+    print("Test %s" % fname)
     f = open(fname)
     lines = f.readlines()
     f.close()
 
-    if not lines[0].startswith('# '):
+    if not lines[0].startswith("# "):
         print("ERROR: decoding information is missing")
         return
 
     # skip '# ' at the front, then split line to get out hexcode
     # Note: option can be '', or 'None'
-    #print lines[0]
-    #print lines[0][2:].split(', ')
-    (arch, mode, option) = lines[0][2:].split(', ')
-    mode = mode.replace(' ', '')
+    # print lines[0]
+    # print lines[0][2:].split(', ')
+    (arch, mode, option) = lines[0][2:].split(", ")
+    mode = mode.replace(" ", "")
     option = option.strip()
 
     archs = {
@@ -35,8 +36,9 @@ def test_file(fname):
         "CS_ARCH_TRICORE": CS_ARCH_TRICORE,
         "CS_ARCH_ALPHA": CS_ARCH_ALPHA,
         "CS_ARCH_HPPA": CS_ARCH_HPPA,
+        "CS_ARCH_XTENSA": CS_ARCH_XTENSA,
     }
-    
+
     modes = {
         "CS_MODE_16": CS_MODE_16,
         "CS_MODE_32": CS_MODE_32,
@@ -46,22 +48,28 @@ def test_file(fname):
         "0": CS_MODE_ARM,
         "CS_MODE_ARM": CS_MODE_ARM,
         "CS_MODE_THUMB": CS_MODE_THUMB,
-        "CS_MODE_ARM+CS_MODE_V8": CS_MODE_ARM+CS_MODE_V8,
-        "CS_MODE_THUMB+CS_MODE_V8": CS_MODE_THUMB+CS_MODE_V8,
-        "CS_MODE_THUMB+CS_MODE_MCLASS": CS_MODE_THUMB+CS_MODE_MCLASS,
-        "CS_MODE_THUMB+CS_MODE_V8+CS_MODE_MCLASS": CS_MODE_THUMB+CS_MODE_V8+CS_MODE_MCLASS,
+        "CS_MODE_ARM+CS_MODE_V8": CS_MODE_ARM + CS_MODE_V8,
+        "CS_MODE_THUMB+CS_MODE_V8": CS_MODE_THUMB + CS_MODE_V8,
+        "CS_MODE_THUMB+CS_MODE_MCLASS": CS_MODE_THUMB + CS_MODE_MCLASS,
+        "CS_MODE_THUMB+CS_MODE_V8+CS_MODE_MCLASS": CS_MODE_THUMB
+        + CS_MODE_V8
+        + CS_MODE_MCLASS,
         "CS_MODE_LITTLE_ENDIAN": CS_MODE_LITTLE_ENDIAN,
         "CS_MODE_BIG_ENDIAN": CS_MODE_BIG_ENDIAN,
-        "CS_MODE_64+CS_MODE_LITTLE_ENDIAN": CS_MODE_64+CS_MODE_LITTLE_ENDIAN,
-        "CS_MODE_64+CS_MODE_BIG_ENDIAN": CS_MODE_64+CS_MODE_BIG_ENDIAN,
-        "CS_MODE_MIPS32+CS_MODE_MICRO": CS_MODE_MIPS32+CS_MODE_MICRO,
-        "CS_MODE_MIPS32+CS_MODE_MICRO+CS_MODE_BIG_ENDIAN": CS_MODE_MIPS32+CS_MODE_MICRO+CS_MODE_BIG_ENDIAN,
-        "CS_MODE_MIPS32+CS_MODE_BIG_ENDIAN+CS_MODE_MICRO": CS_MODE_MIPS32+CS_MODE_MICRO+CS_MODE_BIG_ENDIAN,
+        "CS_MODE_64+CS_MODE_LITTLE_ENDIAN": CS_MODE_64 + CS_MODE_LITTLE_ENDIAN,
+        "CS_MODE_64+CS_MODE_BIG_ENDIAN": CS_MODE_64 + CS_MODE_BIG_ENDIAN,
+        "CS_MODE_MIPS32+CS_MODE_MICRO": CS_MODE_MIPS32 + CS_MODE_MICRO,
+        "CS_MODE_MIPS32+CS_MODE_MICRO+CS_MODE_BIG_ENDIAN": CS_MODE_MIPS32
+        + CS_MODE_MICRO
+        + CS_MODE_BIG_ENDIAN,
+        "CS_MODE_MIPS32+CS_MODE_BIG_ENDIAN+CS_MODE_MICRO": CS_MODE_MIPS32
+        + CS_MODE_MICRO
+        + CS_MODE_BIG_ENDIAN,
         "CS_MODE_BIG_ENDIAN+CS_MODE_V9": CS_MODE_BIG_ENDIAN + CS_MODE_V9,
-        "CS_MODE_MIPS32+CS_MODE_BIG_ENDIAN": CS_MODE_MIPS32+CS_MODE_BIG_ENDIAN,
-        "CS_MODE_MIPS32+CS_MODE_LITTLE_ENDIAN": CS_MODE_MIPS32+CS_MODE_LITTLE_ENDIAN,
-        "CS_MODE_MIPS64+CS_MODE_LITTLE_ENDIAN": CS_MODE_MIPS64+CS_MODE_LITTLE_ENDIAN,
-        "CS_MODE_MIPS64+CS_MODE_BIG_ENDIAN": CS_MODE_MIPS64+CS_MODE_BIG_ENDIAN,
+        "CS_MODE_MIPS32+CS_MODE_BIG_ENDIAN": CS_MODE_MIPS32 + CS_MODE_BIG_ENDIAN,
+        "CS_MODE_MIPS32+CS_MODE_LITTLE_ENDIAN": CS_MODE_MIPS32 + CS_MODE_LITTLE_ENDIAN,
+        "CS_MODE_MIPS64+CS_MODE_LITTLE_ENDIAN": CS_MODE_MIPS64 + CS_MODE_LITTLE_ENDIAN,
+        "CS_MODE_MIPS64+CS_MODE_BIG_ENDIAN": CS_MODE_MIPS64 + CS_MODE_BIG_ENDIAN,
         "CS_MODE_RISCV32": CS_MODE_RISCV32,
         "CS_MODE_RISCV64": CS_MODE_RISCV64,
         "CS_MODE_TRICORE_110": CS_MODE_TRICORE_110,
@@ -71,11 +79,10 @@ def test_file(fname):
         "CS_MODE_TRICORE_160": CS_MODE_TRICORE_160,
         "CS_MODE_TRICORE_161": CS_MODE_TRICORE_161,
         "CS_MODE_TRICORE_162": CS_MODE_TRICORE_162,
-        "CS_MODE_BIG_ENDIAN+CS_MODE_QPX": CS_MODE_BIG_ENDIAN+CS_MODE_QPX,
+        "CS_MODE_BIG_ENDIAN+CS_MODE_QPX": CS_MODE_BIG_ENDIAN + CS_MODE_QPX,
         "CS_MODE_HPPA_11": CS_MODE_HPPA_11,
         "CS_MODE_HPPA_20": CS_MODE_HPPA_20,
         "CS_MODE_HPPA_20W": CS_MODE_HPPA_20W,
-        
     }
 
     mc_modes = {
@@ -125,44 +132,46 @@ def test_file(fname):
         ("CS_ARCH_ALPHA", "CS_MODE_BIG_ENDIAN"): 56,
         ("CS_ARCH_HPPA", "CS_MODE_HPPA_11+CS_MODE_BIG_ENDIAN"): 57,
         ("CS_ARCH_HPPA", "CS_MODE_HPPA_20+CS_MODE_BIG_ENDIAN"): 58,
+        ("CS_ARCH_XTENSA", "CS_MODE_LITTLE_ENDIAN"): 58,
     }
 
-    #if not option in ('', 'None'):
+    # if not option in ('', 'None'):
     #    print archs[arch], modes[mode], options[option]
 
     for line in lines[1:]:
         # ignore all the input lines having # in front.
-        if line.startswith('#'):
+        if line.startswith("#"):
             continue
-        if line.startswith('// '):
-            line=line[3:]
-        #print("Check %s" %line)
-        code = line.split(' = ')[0]
+        if line.startswith("// "):
+            line = line[3:]
+        # print("Check %s" %line)
+        code = line.split(" = ")[0]
         if len(code) < 2:
             continue
-        if code.find('//') >= 0:
+        if code.find("//") >= 0:
             continue
-        hex_code = code.replace('0x', '')
-        hex_code = hex_code.replace(',', '')
-        hex_code = hex_code.replace(' ', '')
+        hex_code = code.replace("0x", "")
+        hex_code = hex_code.replace(",", "")
+        hex_code = hex_code.replace(" ", "")
         try:
-            hex_data = hex_code.strip().decode('hex')
+            hex_data = hex_code.strip().decode("hex")
         except:
-            print "skipping", hex_code
-        fout = open("fuzz/corpus/%s_%s" % (os.path.basename(fname), hex_code), 'w')
+            print
+            "skipping", hex_code
+        fout = open("fuzz/corpus/%s_%s" % (os.path.basename(fname), hex_code), "w")
         if (arch, mode) not in mc_modes:
-            print "fail", arch, mode
+            print
+            "fail", arch, mode
         fout.write(unichr(mc_modes[(arch, mode)]))
         fout.write(hex_data)
         fout.close()
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     if len(sys.argv) == 1:
         fnames = sys.stdin.readlines()
         for fname in fnames:
             test_file(fname.strip())
     else:
-        #print("Usage: ./test_mc.py <input-file.s.cs>")
+        # print("Usage: ./test_mc.py <input-file.s.cs>")
         test_file(sys.argv[1])
-

@@ -72,6 +72,7 @@
 #include "arch/TriCore/TriCoreModule.h"
 #include "arch/Alpha/AlphaModule.h"
 #include "arch/HPPA/HPPAModule.h"
+#include "arch/Xtensa/XtensaModule.h"
 
 typedef struct cs_arch_config {
 	// constructor initialization
@@ -209,6 +210,12 @@ typedef struct cs_arch_config {
 		ALPHA_option, \
 		~(CS_MODE_LITTLE_ENDIAN | CS_MODE_BIG_ENDIAN), \
 	}
+#define CS_ARCH_CONFIG_XTENSA \
+	{ \
+		Xtensa_global_init,\
+		Xtensa_option,\
+		~(CS_MODE_LITTLE_ENDIAN | CS_MODE_XTENSA),\
+	}
 
 #ifdef CAPSTONE_USE_ARCH_REGISTRATION
 static cs_arch_config arch_configs[MAX_ARCH];
@@ -320,6 +327,11 @@ static const cs_arch_config arch_configs[MAX_ARCH] = {
 #else
 	{ NULL, NULL, 0 },
 #endif
+#ifdef CAPSTONE_HAS_XTENSA
+	CS_ARCH_CONFIG_XTENSA
+#else
+	{ NULL, NULL, 0 },
+#endif
 };
 
 // bitmask of enabled architectures
@@ -383,6 +395,9 @@ static const uint32_t all_arch = 0
 #endif
 #ifdef CAPSTONE_HAS_HPPA
 	| (1 << CS_ARCH_HPPA)
+#endif
+#ifdef CAPSTONE_HAS_XTENSA
+	| (1 << CS_ARCH_XTENSA)
 #endif
 ;
 #endif
@@ -617,7 +632,8 @@ bool CAPSTONE_API cs_support(int query)
 				    (1 << CS_ARCH_RISCV) | (1 << CS_ARCH_MOS65XX)    |
 				    (1 << CS_ARCH_WASM)  | (1 << CS_ARCH_BPF)        |
 				    (1 << CS_ARCH_SH)    | (1 << CS_ARCH_TRICORE)    |
-					(1 << CS_ARCH_ALPHA) | (1 << CS_ARCH_HPPA));
+				    (1 << CS_ARCH_ALPHA) | (1 << CS_ARCH_HPPA)       |
+				    (1 << CS_ARCH_XTENSA)) ;
 
 	if ((unsigned int)query < CS_ARCH_MAX)
 		return all_arch & (1 << query);
@@ -1186,7 +1202,7 @@ size_t CAPSTONE_API cs_disasm(csh ud, const uint8_t *buffer, size_t size, uint64
 
 		if (handle->detail_opt) {
 			// allocate memory for @detail pointer
-			insn_cache->detail = cs_mem_malloc(sizeof(cs_detail));
+			insn_cache->detail = cs_mem_calloc(1, sizeof(cs_detail));
 		} else {
 			insn_cache->detail = NULL;
 		}

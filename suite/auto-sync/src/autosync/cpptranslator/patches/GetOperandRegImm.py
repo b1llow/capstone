@@ -12,7 +12,7 @@ class GetOperandRegImm(Patch):
     Patch   OPERAND.getReg()
     to      MCOperand_getReg(OPERAND)
 
-    Same for isImm()
+    Same for getImm()|getExpr
     """
 
     def __init__(self, priority: int):
@@ -23,7 +23,7 @@ class GetOperandRegImm(Patch):
             "(call_expression"
             "    (field_expression"
             "        ((_) @operand)"
-            '        ((field_identifier) @field_id (#match? @field_id "get(Reg|Imm)"))'
+            '        ((field_identifier) @field_id (#match? @field_id "get(Reg|Imm|Expr)"))'
             "    )"
             '    ((argument_list) @arg_list (#eq? @arg_list "()"))'
             ") @get_operand"

@@ -49,7 +49,7 @@ class HeaderPatcher:
 
     def patch_header(self) -> bool:
         if not (self.header.exists() or self.header.is_file()):
-            error_exit(f"self.Header file {self.header.name} does not exist.")
+            error_exit(f"self.Header file {self.header.absolute()} does not exist.")
 
         if not (self.inc.exists() or self.inc.is_file()):
             error_exit(f".self.inc file {self.inc.name} does not exist.")

@@ -62,6 +62,8 @@ class Includes(Patch):
                 return res + get_PPC_includes(filename) + get_general_macros()
             case "AArch64":
                 return res + get_AArch64_includes(filename) + get_general_macros()
+            case "Xtensa":
+                return res + get_Xtensa_includes(filename) + get_general_macros()
             case "TEST_ARCH":
                 return res + b"test_output"
             case _:
@@ -253,6 +255,33 @@ def get_AArch64_includes(filename: str) -> bytes:
             return b"#include <assert.h>\n" + b'#include "../../MathExtras.h"\n\n'
     log.fatal(f"No includes given for AArch64 source file: {filename}")
     exit(1)
+
+
+def get_Xtensa_includes(filename: str) -> bytes:
+    match filename:
+        case "XtensaDisassembler.c":
+            return b"""
+#include "../../MathExtras.h"
+#include "../../MCDisassembler.h"
+#include "../../MCFixedLenDisassembler.h"
+#include "../../SStream.h"
+#include "../../cs_priv.h"
+#define GET_REGINFO_ENUM
+#include "XtensaGenRegisterInfo.inc"
+#define GET_INSTRINFO_MC_DESC
+#define GET_INSTRINFO_ENUM
+#include "XtensaGenInstrInfo.inc"
+
+    """
+        case "":
+            return """
+#include "../../MCInstPrinter.h"
+#include "../../SStream.h"
+#define report_fatal_error(x) return;
+#define MCRegister unsigned
+        """
+        case _:
+            return b""
 
 
 def get_general_macros():

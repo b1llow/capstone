@@ -158,6 +158,7 @@ typedef enum cs_arch {
 	CS_ARCH_TRICORE,	///< TriCore architecture
 	CS_ARCH_ALPHA, 		///< Alpha architecture
 	CS_ARCH_HPPA, 		///< HPPA architecture
+	CS_ARCH_XTENSA, 	///< Xtensa architecture
 	CS_ARCH_MAX,
 	CS_ARCH_ALL = 0xFFFF, // All architectures - for cs_support()
 } cs_arch;
@@ -240,6 +241,7 @@ typedef enum cs_mode {
 	CS_MODE_HPPA_11 = 1 << 1, ///< HPPA 1.1
 	CS_MODE_HPPA_20 = 1 << 2, ///< HPPA 2.0
 	CS_MODE_HPPA_20W = CS_MODE_HPPA_20 | (1 << 3), ///< HPPA 2.0 wide
+	CS_MODE_XTENSA = 1 << 1, ///< Xtensa
 } cs_mode;
 
 typedef void* (CAPSTONE_API *cs_malloc_t)(size_t size);
@@ -387,6 +389,7 @@ typedef struct cs_opt_skipdata {
 #include "tricore.h"
 #include "alpha.h"
 #include "hppa.h"
+#include "xtensa.h"
 
 #define MAX_IMPL_W_REGS 47
 #define MAX_IMPL_R_REGS 20
@@ -437,6 +440,7 @@ typedef struct cs_detail {
 		cs_tricore tricore; ///< TriCore architecture
 		cs_alpha alpha; ///< Alpha architecture
 		cs_hppa hppa; ///< HPPA architecture
+		cs_xtensa xtensa; ///< Xtensa architecture
 	};
 } cs_detail;
 

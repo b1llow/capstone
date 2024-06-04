@@ -162,6 +162,8 @@ DEFINE_inc_detail_op_count(alpha, Alpha);
 DEFINE_dec_detail_op_count(alpha, Alpha);
 DEFINE_inc_detail_op_count(hppa, HPPA);
 DEFINE_dec_detail_op_count(hppa, HPPA);
+DEFINE_inc_detail_op_count(xtensa, Xtensa);
+DEFINE_dec_detail_op_count(xtensa, Xtensa);
 
 /// Returns true if a memory operand is currently edited.
 static inline bool doing_mem(const MCInst *MI)

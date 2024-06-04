@@ -1,0 +1,122 @@
+from . import (
+    CS_OP_INVALID,
+    CS_OP_REG,
+    CS_OP_IMM,
+    CS_OP_FP,
+    CS_OP_PRED,
+    CS_OP_SPECIAL,
+    CS_OP_MEM,
+)
+
+# For Capstone Engine. AUTO-GENERATED FILE, DO NOT EDIT [xtensa_const.py]
+
+Xtensa_REG_INVALID = 0
+Xtensa_REG_SAR = 1
+Xtensa_REG_SP = 2
+Xtensa_REG_A0 = 3
+Xtensa_REG_A2 = 4
+Xtensa_REG_A3 = 5
+Xtensa_REG_A4 = 6
+Xtensa_REG_A5 = 7
+Xtensa_REG_A6 = 8
+Xtensa_REG_A7 = 9
+Xtensa_REG_A8 = 10
+Xtensa_REG_A9 = 11
+Xtensa_REG_A10 = 12
+Xtensa_REG_A11 = 13
+Xtensa_REG_A12 = 14
+Xtensa_REG_A13 = 15
+Xtensa_REG_A14 = 16
+Xtensa_REG_A15 = 17
+Xtensa_REG_ENDING = 18
+Xtensa_INS_INVALID = 19
+Xtensa_INS_ABS = 20
+Xtensa_INS_ADD = 21
+Xtensa_INS_ADDI = 22
+Xtensa_INS_ADDMI = 23
+Xtensa_INS_ADDX2 = 24
+Xtensa_INS_ADDX4 = 25
+Xtensa_INS_ADDX8 = 26
+Xtensa_INS_AND = 27
+Xtensa_INS_BALL = 28
+Xtensa_INS_BANY = 29
+Xtensa_INS_BBC = 30
+Xtensa_INS_BBCI = 31
+Xtensa_INS_BBS = 32
+Xtensa_INS_BBSI = 33
+Xtensa_INS_BEQ = 34
+Xtensa_INS_BEQI = 35
+Xtensa_INS_BEQZ = 36
+Xtensa_INS_BGE = 37
+Xtensa_INS_BGEI = 38
+Xtensa_INS_BGEU = 39
+Xtensa_INS_BGEUI = 40
+Xtensa_INS_BGEZ = 41
+Xtensa_INS_BLT = 42
+Xtensa_INS_BLTI = 43
+Xtensa_INS_BLTU = 44
+Xtensa_INS_BLTUI = 45
+Xtensa_INS_BLTZ = 46
+Xtensa_INS_BNALL = 47
+Xtensa_INS_BNE = 48
+Xtensa_INS_BNEI = 49
+Xtensa_INS_BNEZ = 50
+Xtensa_INS_BNONE = 51
+Xtensa_INS_CALL0 = 52
+Xtensa_INS_CALLX0 = 53
+Xtensa_INS_DSYNC = 54
+Xtensa_INS_ESYNC = 55
+Xtensa_INS_EXTUI = 56
+Xtensa_INS_EXTW = 57
+Xtensa_INS_ISYNC = 58
+Xtensa_INS_J = 59
+Xtensa_INS_JX = 60
+Xtensa_INS_L16SI = 61
+Xtensa_INS_L16UI = 62
+Xtensa_INS_L32I = 63
+Xtensa_INS_L32R = 64
+Xtensa_INS_L8UI = 65
+Xtensa_INS_MEMW = 66
+Xtensa_INS_MOVEQZ = 67
+Xtensa_INS_MOVGEZ = 68
+Xtensa_INS_MOVI = 69
+Xtensa_INS_MOVLTZ = 70
+Xtensa_INS_MOVNEZ = 71
+Xtensa_INS_NEG = 72
+Xtensa_INS_NOP = 73
+Xtensa_INS_OR = 74
+Xtensa_INS_RET = 75
+Xtensa_INS_RSR = 76
+Xtensa_INS_RSYNC = 77
+Xtensa_INS_S16I = 78
+Xtensa_INS_S32I = 79
+Xtensa_INS_S8I = 80
+Xtensa_INS_SLL = 81
+Xtensa_INS_SLLI = 82
+Xtensa_INS_SRA = 83
+Xtensa_INS_SRAI = 84
+Xtensa_INS_SRC = 85
+Xtensa_INS_SRL = 86
+Xtensa_INS_SRLI = 87
+Xtensa_INS_SSA8L = 88
+Xtensa_INS_SSAI = 89
+Xtensa_INS_SSL = 90
+Xtensa_INS_SSR = 91
+Xtensa_INS_SUB = 92
+Xtensa_INS_SUBX2 = 93
+Xtensa_INS_SUBX4 = 94
+Xtensa_INS_SUBX8 = 95
+Xtensa_INS_WSR = 96
+Xtensa_INS_XOR = 97
+Xtensa_INS_XSR = 98
+
+Xtensa_GRP_INVALID = 0
+Xtensa_GRP_CALL = 1
+Xtensa_GRP_JUMP = 2
+Xtensa_GRP_RET = 3
+Xtensa_FEATURE_HasDensity = 128
+Xtensa_GRP_ENDING = 129
+Xtensa_OP_INVALID = CS_OP_INVALID
+Xtensa_OP_REG = CS_OP_REG
+Xtensa_OP_IMM = CS_OP_IMM
+Xtensa_OP_MEM = CS_OP_MEM
