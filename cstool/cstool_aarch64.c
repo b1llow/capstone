@@ -7,15 +7,16 @@
 
 #include <capstone/capstone.h>
 #include "cstool.h"
+#include "priv.h"
 
-void print_insn_detail_aarch64(csh handle, cs_insn *ins)
+void print_insn_detail_aarch64(csh handle, cs_insn *ins, Stream *steam)
 {
 	cs_aarch64 *aarch64;
 	int i;
 	cs_regs regs_read, regs_write;
 	uint8_t regs_read_count, regs_write_count;
 	uint8_t access;
-	
+
 	// detail can be NULL if SKIPDATA option is turned ON
 	if (ins->detail == NULL)
 		return;
@@ -46,13 +47,13 @@ void print_insn_detail_aarch64(csh handle, cs_insn *ins)
 		case AArch64_OP_MEM:
 			printf("\t\toperands[%u].type: MEM\n", i);
 			if (op->mem.base != AArch64_REG_INVALID)
-				printf("\t\t\toperands[%u].mem.base: REG = %s\n", i, cs_reg_name(handle, op->mem.base));
+				printf("\t\toperands[%u].mem.base: REG = %s\n", i, cs_reg_name(handle, op->mem.base));
 			if (op->mem.index != AArch64_REG_INVALID)
-				printf("\t\t\toperands[%u].mem.index: REG = %s\n", i, cs_reg_name(handle, op->mem.index));
+				printf("\t\toperands[%u].mem.index: REG = %s\n", i, cs_reg_name(handle, op->mem.index));
 			if (op->mem.disp != 0)
-				printf("\t\t\toperands[%u].mem.disp: 0x%x\n", i, op->mem.disp);
+				printf("\t\toperands[%u].mem.disp: 0x%x\n", i, op->mem.disp);
 			if (ins->detail->aarch64.post_index)
-				printf("\t\t\tpost-indexed: true\n");
+				printf("\t\tpost-indexed: true\n");
 
 			break;
 		case AArch64_OP_SME_MATRIX:
@@ -169,7 +170,7 @@ void print_insn_detail_aarch64(csh handle, cs_insn *ins)
 			}
 			break;
 		}
-		
+
 		access = op->access;
 		switch(access) {
 			default:
@@ -184,20 +185,20 @@ void print_insn_detail_aarch64(csh handle, cs_insn *ins)
 				printf("\t\toperands[%u].access: READ | WRITE\n", i);
 				break;
 		}
-		
+
 		if (op->shift.type != AArch64_SFT_INVALID &&
 			op->shift.value)
 			printf("\t\t\tShift: type = %u, value = %u\n",
 				   op->shift.type, op->shift.value);
 
 		if (op->ext != AArch64_EXT_INVALID)
-			printf("\t\t\tExt: %u\n", op->ext);
+			printf("\t\tExt: %u\n", op->ext);
 
 		if (op->vas != AArch64Layout_Invalid)
-			printf("\t\t\tVector Arrangement Specifier: 0x%x\n", op->vas);
+			printf("\t\toperands[%u].vas: 0x%x\n", i, op->vas);
 
 		if (op->vector_index != -1)
-			printf("\t\t\tVector Index: %u\n", op->vector_index);
+			printf("\t\toperands[%u].vector_index: %u\n", i, op->vector_index);
 	}
 
 	if (aarch64->update_flags)
@@ -220,7 +221,7 @@ void print_insn_detail_aarch64(csh handle, cs_insn *ins)
 			}
 			printf("\n");
 		}
-		
+
 		if (regs_write_count) {
 			printf("\tRegisters modified:");
 			for(i = 0; i < regs_write_count; i++) {

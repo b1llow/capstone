@@ -3,8 +3,9 @@
 
 #include <capstone/capstone.h>
 #include "cstool.h"
+#include "priv.h"
 
-void print_insn_detail_evm(csh handle, cs_insn *ins)
+void print_insn_detail_evm(csh handle, cs_insn *ins, Stream *steam)
 {
 	cs_evm *evm;
 

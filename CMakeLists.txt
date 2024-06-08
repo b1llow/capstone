@@ -6,7 +6,6 @@ if(CMAKE_SOURCE_DIR STREQUAL CMAKE_BINARY_DIR)
 endif()
 
 set(BUILD_RPATH_USE_ORIGIN true)
-#set(CMAKE_C_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=address,undefined -fno-omit-frame-pointer -g -O3 -Wno-deprecated-declarations")
 
 # Detect whether capstone is compiled as top-level or a subdirectory
 set(PROJECT_IS_TOP_LEVEL OFF)
@@ -876,15 +875,15 @@ if(CAPSTONE_INSTALL)
 endif()
 
 if (CAPSTONE_BUILD_CSTOOL OR CAPSTONE_BUILD_CSTEST)
-    file(GLOB CSTOOL_SRC cstool/cstool_*.c)
-    add_library(cs_print OBJECT ${CSTOOL_SRC})
+    file(GLOB CS_PRINT_SRC cstool/cstool_*.c cstool/getopt.c)
+    add_library(cs_print OBJECT ${CS_PRINT_SRC})
     target_link_libraries(cs_print PUBLIC capstone)
 endif ()
 
 if(CAPSTONE_BUILD_CSTOOL)
     file(GLOB CSTOOL_SRC cstool/cstool.c)
     add_executable(cstool ${CSTOOL_SRC})
-    target_link_libraries(cstool PRIVATE capstone cs_print)
+    target_link_libraries(cstool PRIVATE cs_print)
 
     if(CAPSTONE_INSTALL)
         install(TARGETS cstool EXPORT capstone-targets DESTINATION ${CMAKE_INSTALL_BINDIR})
@@ -911,10 +910,11 @@ if(CAPSTONE_BUILD_CSTEST)
     file(GLOB CSTEST_SRC suite/cstest/src/*.c)
     add_executable(cstest ${CSTEST_SRC})
     add_dependencies(cstest cmocka_ext)
-    target_link_libraries(cstest PUBLIC capstone cmocka)
+    target_link_libraries(cstest PUBLIC cs_print cmocka)
     target_include_directories(cstest PRIVATE
             $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include>
             ${PROJECT_SOURCE_DIR}/suite/cstest/include
+            ${PROJECT_SOURCE_DIR}/cstool
             ${CMOCKA_INCLUDE_DIR}
             )
 

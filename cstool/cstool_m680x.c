@@ -4,12 +4,13 @@
 #include <stdio.h>
 #include <capstone/capstone.h>
 #include "cstool.h"
+#include "priv.h"
 
 static const char *s_access[] = {
 	"UNCHANGED", "READ", "WRITE", "READ | WRITE",
 };
 
-static void print_read_write_regs(csh handle, cs_detail *detail)
+static void print_read_write_regs(csh handle, cs_detail *detail, Stream *steam)
 {
 	int i;
 
@@ -41,7 +42,7 @@ static void print_read_write_regs(csh handle, cs_detail *detail)
 	}
 }
 
-void print_insn_detail_m680x(csh handle, cs_insn *insn)
+void print_insn_detail_m680x(csh handle, cs_insn *insn, Stream *steam)
 {
 	cs_detail *detail = insn->detail;
 	cs_m680x *m680x = NULL;
@@ -149,6 +150,6 @@ void print_insn_detail_m680x(csh handle, cs_insn *insn)
 			printf("\t\t\taccess: %s\n", s_access[op->access]);
 	}
 
-	print_read_write_regs(handle, detail);
+	print_read_write_regs(handle, detail, steam);
 }
 

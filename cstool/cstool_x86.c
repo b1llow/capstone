@@ -5,8 +5,7 @@
 
 #include <capstone/capstone.h>
 #include "cstool.h"
-
-void print_string_hex(const char *comment, unsigned char *str, size_t len);
+#include "priv.h"
 
 static const char *get_eflag_name(uint64_t flag)
 {
@@ -178,27 +177,28 @@ static const char *get_fpu_flag_name(uint64_t flag)
 	}
 }
 
-void print_insn_detail_x86(csh ud, cs_mode mode, cs_insn *ins)
+void print_insn_detail_x86(csh ud, cs_insn *ins, Stream *steam)
 {
 	int count, i;
 	cs_x86 *x86;
 	cs_regs regs_read, regs_write;
 	uint8_t regs_read_count, regs_write_count;
-	
+
 	// detail can be NULL on "data" instruction if SKIPDATA option is turned ON
 	if (ins->detail == NULL)
 		return;
 
 	x86 = &(ins->detail->x86);
 
-	print_string_hex("\tPrefix:", x86->prefix, 4);
-	print_string_hex("\tOpcode:", x86->opcode, 4);
+	stream_print_string_hex(steam, "\tPrefix:", x86->prefix, 4);
+	stream_print_string_hex(steam, "\tOpcode:", x86->opcode, 4);
 	printf("\trex: 0x%x\n", x86->rex);
 	printf("\taddr_size: %u\n", x86->addr_size);
 	printf("\tmodrm: 0x%x\n", x86->modrm);
 	printf("\tdisp: 0x%" PRIx64 "\n", x86->disp);
 
 	// SIB is not available in 16-bit mode
+	cs_mode mode = ((cs_struct *)ud)->mode;
 	if ((mode & CS_MODE_16) == 0) {
 		printf("\tsib: 0x%x\n", x86->sib);
 		if (x86->sib_base != X86_REG_INVALID)

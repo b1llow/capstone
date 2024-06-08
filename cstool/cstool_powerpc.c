@@ -6,6 +6,7 @@
 #include <capstone/capstone.h>
 #include "capstone/ppc.h"
 #include "cstool.h"
+#include "priv.h"
 
 static const char* get_pred_name(ppc_pred pred)
 {
@@ -84,7 +85,7 @@ static const char *get_pred_hint(ppc_br_hint at) {
 	}
 }
 
-void print_insn_detail_ppc(csh handle, cs_insn *ins)
+void print_insn_detail_ppc(csh handle, cs_insn *ins, Stream *steam)
 {
 	cs_ppc *ppc;
 	int i;

@@ -14,7 +14,6 @@
 #include <string.h>
 #include <capstone/capstone.h>
 #include "helper.h"
-#include "factory.h"
 
 #define cs_assert_err(expect, err)									\
 	do {																\

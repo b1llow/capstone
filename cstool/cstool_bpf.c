@@ -8,7 +8,7 @@ static const char * ext_name[] = {
 	[BPF_EXT_LEN] = "#len",
 };
 
-void print_insn_detail_bpf(csh handle, cs_insn *ins)
+void print_insn_detail_bpf(csh handle, cs_insn *ins, Stream *steam)
 {
 	unsigned i;
 	cs_bpf *bpf;

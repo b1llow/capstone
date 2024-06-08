@@ -4,8 +4,9 @@
 #include <capstone/platform.h>
 #include "cstool.h"
 #include "limits.h"
+#include "priv.h"
 
-void print_insn_detail_hppa(csh handle, cs_insn *ins)
+void print_insn_detail_hppa(csh handle, cs_insn *ins, Stream *steam)
 {
 	cs_hppa *hppa;
 	cs_regs regs_read, regs_write;

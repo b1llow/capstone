@@ -142,7 +142,6 @@ static char **list_lines;
 static int failed_setup;
 static int size_lines;
 static cs_mode issue_mode;
-static int getDetail;
 static int mc_mode;
 static int e_flag;
 
@@ -256,9 +255,8 @@ static int setup_issue(void **state)
 	char **list_params;	
 	int size_params;
 	int arch, mode;
-	int i, result;
+	int i;
 
-	getDetail = 0;
 	failed_setup = 0;
 
 	if (e_flag == 0)
@@ -328,17 +326,6 @@ static int setup_issue(void **state)
 				failed_setup = 1;
 				return -1;
 			}
-
-			if (i == 0) {
-				result = set_function(arch);
-				if (result == -1) {
-					fprintf(stderr, "[  ERROR   ] --- Cannot get details\n");
-					failed_setup = 1;
-					return -1;
-				}
-
-				getDetail = 1;
-			}
 		}
 	}
 
@@ -359,11 +346,9 @@ static int setup_issue(void **state)
 static void test_issue(void **state)
 {
 	if (e_flag == 0)
-		test_single_issue((csh *)*state, issue_mode, list_lines[counter], getDetail);
+		test_single_issue((csh *)*state, issue_mode, list_lines[counter], 1);
 	else
-		test_single_issue((csh *)*state, issue_mode, list_lines[counter] + 3, getDetail);
-
-	return;
+		test_single_issue((csh *)*state, issue_mode, list_lines[counter] + 3, 1);
 }
 
 static int teardown_issue(void **state)
@@ -377,7 +362,6 @@ static int teardown_issue(void **state)
 
 	cs_close(*state);
 	free(*state);
-	function = NULL;
 	return 0;
 }
 
@@ -392,7 +376,6 @@ static void test_file(const char *filename)
 	content = readfile(filename);
 	counter = 0;
 	failed_setup = 0;
-	function = NULL;		
 
 	if (strstr(filename, "issue")) {
 		number_of_tests = 0;

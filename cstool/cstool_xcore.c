@@ -5,7 +5,7 @@
 #include <capstone/capstone.h>
 #include "cstool.h"
 
-void print_insn_detail_xcore(csh handle, cs_insn *ins)
+void print_insn_detail_xcore(csh handle, cs_insn *ins, Stream *steam)
 {
 	cs_xcore *xcore;
 	int i;

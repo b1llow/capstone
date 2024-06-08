@@ -3,6 +3,7 @@
 
 #include <capstone/capstone.h>
 #include "cstool.h"
+#include "priv.h"
 
 static const char *get_am_name(mos65xx_address_mode mode)
 {
@@ -63,7 +64,7 @@ static const char *get_am_name(mos65xx_address_mode mode)
 	}
 }
 
-void print_insn_detail_mos65xx(csh handle, cs_insn *ins)
+void print_insn_detail_mos65xx(csh handle, cs_insn *ins, Stream *steam)
 {
 	int i;
 	cs_mos65xx *mos65xx;

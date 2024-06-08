@@ -9,8 +9,6 @@
 #include <capstone/capstone.h>
 #include "cstool.h"
 
-void print_string_hex(const char *comment, unsigned char *str, size_t len);
-
 typedef struct {
 	const char *name;
 	cs_arch arch;
@@ -131,20 +129,6 @@ static Arch all_archs[] = {
 };
 
 // clang-format on
-
-static void print_details(csh handle, cs_arch arch, cs_mode md, cs_insn *ins);
-
-void print_string_hex(const char *comment, unsigned char *str, size_t len)
-{
-	unsigned char *c;
-
-	printf("%s", comment);
-	for (c = str; c < str + len; c++) {
-		printf("0x%02x ", *c & 0xff);
-	}
-
-	printf("\n");
-}
 
 // convert hexchar to hexnum
 static uint8_t char_to_hexnum(char c)
@@ -364,108 +348,6 @@ static void usage(char *prog)
 	printf("        -v show version & Capstone core build info\n\n");
 }
 
-static void print_details(csh handle, cs_arch arch, cs_mode md, cs_insn *ins)
-{
-	printf("\tID: %u (%s)\n", ins->id, cs_insn_name(handle, ins->id));
-	if (ins->is_alias) {
-		printf("\tIs alias: %" PRIu64 " (%s) ", ins->alias_id,
-		       cs_insn_name(handle, ins->alias_id));
-		printf("with %s operand set\n",
-		       ins->usesAliasDetails ? "ALIAS" : "REAL");
-	}
-
-	switch (arch) {
-	case CS_ARCH_X86:
-		print_insn_detail_x86(handle, md, ins);
-		break;
-	case CS_ARCH_ARM:
-		print_insn_detail_arm(handle, ins);
-		break;
-	case CS_ARCH_AARCH64:
-		print_insn_detail_aarch64(handle, ins);
-		break;
-	case CS_ARCH_MIPS:
-		print_insn_detail_mips(handle, ins);
-		break;
-	case CS_ARCH_PPC:
-		print_insn_detail_ppc(handle, ins);
-		break;
-	case CS_ARCH_SPARC:
-		print_insn_detail_sparc(handle, ins);
-		break;
-	case CS_ARCH_SYSZ:
-		print_insn_detail_sysz(handle, ins);
-		break;
-	case CS_ARCH_XCORE:
-		print_insn_detail_xcore(handle, ins);
-		break;
-	case CS_ARCH_M68K:
-		print_insn_detail_m68k(handle, ins);
-		break;
-	case CS_ARCH_TMS320C64X:
-		print_insn_detail_tms320c64x(handle, ins);
-		break;
-	case CS_ARCH_M680X:
-		print_insn_detail_m680x(handle, ins);
-		break;
-	case CS_ARCH_EVM:
-		print_insn_detail_evm(handle, ins);
-		break;
-	case CS_ARCH_WASM:
-		print_insn_detail_wasm(handle, ins);
-		break;
-	case CS_ARCH_MOS65XX:
-		print_insn_detail_mos65xx(handle, ins);
-		break;
-	case CS_ARCH_BPF:
-		print_insn_detail_bpf(handle, ins);
-		break;
-	case CS_ARCH_RISCV:
-		print_insn_detail_riscv(handle, ins);
-		break;
-	case CS_ARCH_SH:
-		print_insn_detail_sh(handle, ins);
-		break;
-	case CS_ARCH_TRICORE:
-		print_insn_detail_tricore(handle, ins);
-		break;
-	case CS_ARCH_ALPHA:
-		print_insn_detail_alpha(handle, ins);
-		break;
-	case CS_ARCH_HPPA:
-		print_insn_detail_hppa(handle, ins);
-		break;
-	case CS_ARCH_XTENSA: {
-		char *buf = NULL;
-		size_t sz = 0;
-		FILE *f = open_memstream(&buf, &sz);
-		if (!f) {
-			break;
-		}
-		print_insn_detail_xtensa(handle, ins, f);
-		fclose(f);
-		printf("%s", buf);
-		free(buf);
-		break;
-	}
-	default:
-		break;
-	}
-
-	if (ins->detail && ins->detail->groups_count) {
-		int j;
-
-		printf("\tGroups: ");
-		for (j = 0; j < ins->detail->groups_count; j++) {
-			printf("%s ",
-			       cs_group_name(handle, ins->detail->groups[j]));
-		}
-		printf("\n");
-	}
-
-	printf("\n");
-}
-
 int main(int argc, char **argv)
 {
 	int i, c;
@@ -636,7 +518,10 @@ int main(int argc, char **argv)
 			printf("  %s\t%s\n", insn[i].mnemonic, insn[i].op_str);
 
 			if (detail_flag) {
-				print_details(handle, arch, md, &insn[i]);
+				Stream steam = {0};
+				stream_init_stdout(&steam);
+				print_insn_detail(handle, arch, md, &insn[i], &steam);
+				stream_close(&steam);
 			}
 		}
 

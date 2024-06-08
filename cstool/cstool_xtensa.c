@@ -2,9 +2,9 @@
 
 #include <capstone/capstone.h>
 #include "cstool.h"
+#include "priv.h"
 
-#define printf(...) fprintf(f, __VA_ARGS__)
-void print_insn_detail_xtensa(csh handle, cs_insn *ins, FILE* f)
+void print_insn_detail_xtensa(csh handle, cs_insn *ins, Stream *steam)
 {
 	int i;
 	cs_regs regs_read, regs_write;
@@ -21,39 +21,22 @@ void print_insn_detail_xtensa(csh handle, cs_insn *ins, FILE* f)
 
 	for (i = 0; i < detail->op_count; i++) {
 		cs_xtensa_op *op = &(detail->operands[i]);
-		switch ((int)op->type) {
-		default:
-			break;
-		case CS_OP_REG:
+		check_type(CS_OP_REG)
 			printf("\t\toperands[%u].type: REG = %s\n", i,
 			       cs_reg_name(handle, op->reg));
-			break;
-		case CS_OP_IMM:
+		else check_type(CS_OP_IMM)
 			printf("\t\toperands[%u].type: IMM = 0x%" PRIx32 "\n",
 			       i, op->imm);
-			break;
-		case CS_OP_MEM:
+		else check_type(CS_OP_MEM)
 			printf("\t\toperands[%u].type: MEM\n"
 			       "\t\t\t.mem.base: REG = %s\n"
 			       "\t\t\t.mem.disp: 0x%" PRIx8 "\n",
 			       i, cs_reg_name(handle, op->mem.base),
 			       op->mem.index);
-			break;
-		}
-
-		switch (op->access) {
-		default:
-			break;
-		case CS_AC_READ:
-			printf("\t\t\t.access: READ\n");
-			break;
-		case CS_AC_WRITE:
-			printf("\t\t\t.access: WRITE\n");
-			break;
-		case CS_AC_READ | CS_AC_WRITE:
+		check_access(CS_AC_READ) printf("\t\t\t.access: READ\n");
+		else check_access(CS_AC_WRITE) printf("\t\t\t.access: WRITE\n");
+		else check_access(CS_AC_READ | CS_AC_WRITE)
 			printf("\t\t\t.access: READ | WRITE\n");
-			break;
-		}
 	}
 	// Print out all registers accessed by this instruction (either implicit or
 	// explicit)

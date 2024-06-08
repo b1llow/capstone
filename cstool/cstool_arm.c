@@ -4,8 +4,9 @@
 
 #include <capstone/capstone.h>
 #include "cstool.h"
+#include "priv.h"
 
-void print_insn_detail_arm(csh handle, cs_insn *ins)
+void print_insn_detail_arm(csh handle, cs_insn *ins, Stream *steam)
 {
 	cs_arm *arm;
 	int i;

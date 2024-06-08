@@ -13,11 +13,12 @@ char **split(const char *str, const char *delim, int *size)
 
 	while ((token = strstr(src, delim)) != NULL) {
 		result = (char **)realloc(result, sizeof(char *) * (cnt + 1));
-		result[cnt] = (char *)calloc(1, sizeof(char) * (int)(token - src + 10));
-		memcpy(result[cnt], src, token - src);
-		result[cnt][token - src] = '\0';
+		unsigned len = token - src;
+		result[cnt] = (char *)calloc(1, sizeof(char) * (int)(len + 10));
+		memcpy(result[cnt], src, len);
+		result[cnt][len + 1] = '\0';
 		src = token + strlen(delim);
-		cnt ++;
+		cnt++;
 	}
 
 	if (strlen(src) > 0) {

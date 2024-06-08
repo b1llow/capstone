@@ -9,6 +9,7 @@
 #include <stdio.h>
 #include <capstone/capstone.h>
 #include "cstool.h"
+#include "priv.h"
 
 static const char* s_addressing_modes[] = {
 	"<invalid mode>",
@@ -40,7 +41,7 @@ static const char* s_addressing_modes[] = {
 	"Immediate value",
 };
 
-static void print_read_write_regs(cs_detail* detail, csh handle)
+static void print_read_write_regs(cs_detail* detail, csh handle, Stream *steam)
 {
 	int i;
 
@@ -57,7 +58,7 @@ static void print_read_write_regs(cs_detail* detail, csh handle)
 	}
 }
 
-void print_insn_detail_m68k(csh handle, cs_insn *ins)
+void print_insn_detail_m68k(csh handle, cs_insn *ins, Stream *steam)
 {
 	cs_m68k* m68k;
 	cs_detail* detail;
@@ -72,7 +73,7 @@ void print_insn_detail_m68k(csh handle, cs_insn *ins)
 	if (m68k->op_count)
 		printf("\top_count: %u\n", m68k->op_count);
 
-	print_read_write_regs(detail, handle);
+	print_read_write_regs(detail, handle, steam);
 
 	printf("\tgroups_count: %u\n", detail->groups_count);
 

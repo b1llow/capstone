@@ -13,10 +13,10 @@ typedef struct SStream {
 } SStream;
 
 #define SSTREAM_RETURN_IF_CLOSED(OS) \
-do { \
-	if (OS->is_closed) \
-		return; \
-} while(0)
+	do { \
+		if ((OS)->is_closed) \
+			return; \
+	} while (0)
 
 void SStream_Init(SStream *ss);
 
