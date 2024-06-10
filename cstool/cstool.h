@@ -67,8 +67,11 @@ static inline void stream_printf(Stream *s, const char *fmt, ...)
 		s->ss.index += res;
 	} else {
 		Stringbuf *ss = &s->ss;
+		va_list ap_try;
+		va_copy(ap_try, ap);
 		int ret = cs_vsnprintf(stringbuf_back(&s->ss),
-				       ss->size - ss->index, fmt, ap);
+				       ss->size - ss->index, fmt, ap_try);
+		va_end(ap_try);
 		if (ret >= ss->size - ss->index) {
 			if (!stringbuf_grow(ss, (ss->index + ret) * 2)) {
 				assert(0);
