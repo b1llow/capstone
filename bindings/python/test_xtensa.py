@@ -8,7 +8,7 @@ from capstone.xtensa import *
 from xprint import to_hex, to_x
 
 all_tests = (
-    (CS_ARCH_XTENSA, CS_MODE_LITTLE_ENDIAN, b'\x60\x51\x60', "Xtensa"),
+    (CS_ARCH_XTENSA, CS_MODE_LITTLE_ENDIAN, b'\x60\x51\x60\x32\x51\x02', "Xtensa"),
 )
 
 

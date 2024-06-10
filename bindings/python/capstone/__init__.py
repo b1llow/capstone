@@ -273,7 +273,7 @@ CS_MODE_MOS65XX_6502 = (1 << 1) # MOS65XXX MOS 6502
 CS_MODE_MOS65XX_65C02 = (1 << 2) # MOS65XXX WDC 65c02
 CS_MODE_MOS65XX_W65C02 = (1 << 3) # MOS65XXX WDC W65c02
 CS_MODE_MOS65XX_65816 = (1 << 4) # MOS65XXX WDC 65816, 8-bit m/x
-CS_MODE_MOS65XX_65816_LONG_M = (1 << 5) # MOS65XXX WDC 65816, 16-bit m, 8-bit x 
+CS_MODE_MOS65XX_65816_LONG_M = (1 << 5) # MOS65XXX WDC 65816, 16-bit m, 8-bit x
 CS_MODE_MOS65XX_65816_LONG_X = (1 << 6) # MOS65XXX WDC 65816, 8-bit m, 16-bit x
 CS_MODE_MOS65XX_65816_LONG_MX = CS_MODE_MOS65XX_65816_LONG_M | CS_MODE_MOS65XX_65816_LONG_X
 CS_MODE_SH2 = 1 << 1   # SH2
@@ -329,6 +329,8 @@ CS_OP_RESERVED_14 = 14
 CS_OP_RESERVED_15 = 15
 CS_OP_SPECIAL = 0x10  # Special operands from archs
 CS_OP_MEM = 0x80  # Memory operand. Can be ORed with another operand type.
+CS_OP_MEM_REG = CS_OP_MEM | CS_OP_REG  # Memory referencing register operand.
+CS_OP_MEM_IMM = CS_OP_MEM | CS_OP_IMM  # Memory referencing immediate operand.
 
 # Common instruction groups - to be consistent across all architectures.
 CS_GRP_INVALID = 0  # uninitialized/invalid group.
@@ -814,7 +816,7 @@ class CsInsn(object):
         arch = self._cs.arch
         if arch == CS_ARCH_ARM:
             (self.usermode, self.vector_size, self.vector_data, self.cps_mode, self.cps_flag, self.cc, self.vcc, self.update_flags, \
-            self.post_index, self.mem_barrier, self.pred_mask, self.operands) = arm.get_arch_info(self._raw.detail.contents.arch.arm) 
+            self.post_index, self.mem_barrier, self.pred_mask, self.operands) = arm.get_arch_info(self._raw.detail.contents.arch.arm)
         elif arch == CS_ARCH_AARCH64:
             (self.cc, self.update_flags, self.post_index, self.operands) = \
                 aarch64.get_arch_info(self._raw.detail.contents.arch.aarch64)

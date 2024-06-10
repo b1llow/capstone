@@ -2,13 +2,13 @@
 
 import ctypes
 from . import copy_ctypes_list
-from .tricore_const import *
+from .xtensa_const import *
 
 
 class XtensaOpMem(ctypes.Structure):
     _fields_ = (
         ("base", ctypes.c_uint8),
-        ("index", ctypes.c_uint8),
+        ("disp", ctypes.c_uint8),
     )
 
 

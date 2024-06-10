@@ -52,8 +52,9 @@ template = {
         "comment_close": "",
     },
     "python": {
-        "header": "from . import CS_OP_INVALID, CS_OP_REG, CS_OP_IMM, CS_OP_FP, CS_OP_PRED, CS_OP_SPECIAL, CS_OP_MEM\n"
-        "# For Capstone Engine. AUTO-GENERATED FILE, DO NOT EDIT [%s_const.py]\n",
+        "header": "from . import CS_OP_INVALID, CS_OP_REG, CS_OP_IMM, CS_OP_FP, CS_OP_PRED, CS_OP_SPECIAL, CS_OP_MEM, "
+                  "CS_OP_MEM_REG, CS_OP_MEM_IMM\n"
+                  "# For Capstone Engine. AUTO-GENERATED FILE, DO NOT EDIT [%s_const.py]\n",
         "footer": "",
         "line_format": "%s = %s\n",
         "out_file": "./python/capstone/%s_const.py",
@@ -226,7 +227,7 @@ def write_enum_extra_options(outfile, templ, enum, enum_values):
 
 def is_with_prefix(x, prefix, target):
     if target in excluded_prefixes and any(
-        x.startswith(excl_pre) for excl_pre in excluded_prefixes[target]
+            x.startswith(excl_pre) for excl_pre in excluded_prefixes[target]
     ):
         return False
     prefixs = prefix if isinstance(prefix, list) else [prefix]
@@ -262,12 +263,12 @@ def gen(lang):
             if line.startswith(MARKUP):  # markup for comments
                 outfile.write(
                     (
-                        "\n%s%s%s\n"
-                        % (
-                            templ["comment_open"],
-                            line.replace(MARKUP, ""),
-                            templ["comment_close"],
-                        )
+                            "\n%s%s%s\n"
+                            % (
+                                templ["comment_open"],
+                                line.replace(MARKUP, ""),
+                                templ["comment_close"],
+                            )
                     ).encode("utf-8")
                 )
                 continue
@@ -368,15 +369,15 @@ def gen(lang):
                         if "option_sets" in templ and enum in templ["option_sets"]:
                             outfile.write(
                                 (
-                                    templ["option_set_header"]
-                                    % (enum, templ["option_sets"][enum])
+                                        templ["option_set_header"]
+                                        % (enum, templ["option_sets"][enum])
                                 ).encode("utf-8")
                             )
                         else:
                             outfile.write(
                                 (
-                                    templ["enum_header"]
-                                    % (enum, enum_type(enum, templ))
+                                        templ["enum_header"]
+                                        % (enum, enum_type(enum, templ))
                                 ).encode("utf-8")
                             )
                         enums[enum] = {}
