@@ -4,7 +4,7 @@
 
 from __future__ import print_function
 from capstone import *
-from capstone.tricore import *
+from capstone.xtensa import *
 from xprint import to_hex, to_x
 
 all_tests = (

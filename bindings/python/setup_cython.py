@@ -12,7 +12,7 @@ SYSTEM = sys.platform
 
 # adapted from commit e504b81 of Nguyen Tan Cong
 # Reference: https://docs.python.org/2/library/platform.html#cross-platform
-IS_64BITS = sys.maxsize > 2**32
+IS_64BITS = sys.maxsize > 2 ** 32
 
 # are we building from the repository or from a source distribution?
 ROOT_DIR = os.path.dirname(os.path.realpath(__file__))
@@ -69,7 +69,50 @@ else:
 compile_args = ['-O3', '-fomit-frame-pointer', '-I' + HEADERS_DIR]
 link_args = ['-L' + LIBS_DIR]
 
-ext_module_names = ['arm', 'arm_const', 'aarch64', 'aarch64_const', 'm68k', 'm68k_const', 'm680x', 'm680x_const', 'mips', 'mips_const', 'ppc', 'ppc_const', 'x86', 'x86_const', 'sparc', 'sparc_const', 'systemz', 'sysz_const', 'xcore', 'xcore_const', 'tms320c64x', 'tms320c64x_const', 'evm', 'evm_const', 'mos65xx', 'mos65xx_const', 'wasm', 'wasm_const', 'bpf', 'bpf_const', 'riscv', 'riscv_const', 'sh', 'sh_const', 'tricore', 'tricore_const', 'alpha', 'alpha_const', 'hppa', 'hppa_const' ]
+ext_module_names = [
+    "arm",
+    "arm_const",
+    "aarch64",
+    "aarch64_const",
+    "m68k",
+    "m68k_const",
+    "m680x",
+    "m680x_const",
+    "mips",
+    "mips_const",
+    "ppc",
+    "ppc_const",
+    "x86",
+    "x86_const",
+    "sparc",
+    "sparc_const",
+    "systemz",
+    "sysz_const",
+    "xcore",
+    "xcore_const",
+    "tms320c64x",
+    "tms320c64x_const",
+    "evm",
+    "evm_const",
+    "mos65xx",
+    "mos65xx_const",
+    "wasm",
+    "wasm_const",
+    "bpf",
+    "bpf_const",
+    "riscv",
+    "riscv_const",
+    "sh",
+    "sh_const",
+    "tricore",
+    "tricore_const",
+    "alpha",
+    "alpha_const",
+    "hppa",
+    "hppa_const",
+    "xtensa",
+    "xtensa_const",
+]
 
 ext_modules = [Extension("capstone.ccapstone",
                          ["pyx/ccapstone.pyx"],
@@ -90,6 +133,7 @@ def clean_bins():
     shutil.rmtree(LIBS_DIR, ignore_errors=True)
     shutil.rmtree(HEADERS_DIR, ignore_errors=True)
 
+
 def copy_pysources():
     for fname in os.listdir(PYPACKAGE_DIR):
         if not fname.endswith('.py'):
@@ -99,6 +143,7 @@ def copy_pysources():
             shutil.copy(os.path.join(PYPACKAGE_DIR, fname), os.path.join(CYPACKAGE_DIR, fname))
         else:
             shutil.copy(os.path.join(PYPACKAGE_DIR, fname), os.path.join(CYPACKAGE_DIR, fname + 'x'))
+
 
 def build_libraries():
     """
@@ -134,7 +179,8 @@ def build_libraries():
         if not os.path.exists("build"): os.mkdir("build")
         os.chdir("build")
         # Only build capstone.dll
-        os.system('cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_BUILD_SHARED=ON -DCAPSTONE_BUILD_TESTS=OFF -DCAPSTONE_BUILD_CSTOOL=OFF -G "NMake Makefiles" ..')
+        os.system(
+            'cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_BUILD_SHARED=ON -DCAPSTONE_BUILD_TESTS=OFF -DCAPSTONE_BUILD_CSTOOL=OFF -G "NMake Makefiles" ..')
         os.system("cmake --build .")
     else:  # Unix incl. cygwin
         os.system("CAPSTONE_BUILD_CORE_ONLY=yes bash ./make.sh")
@@ -152,9 +198,10 @@ class custom_build(build):
         build_libraries()
         return build.run(self)
 
+
 # clean package directory first
-#import os.path, shutil, sys
-#for f in sys.path:
+# import os.path, shutil, sys
+# for f in sys.path:
 #    if f.endswith('packages'):
 #        pkgdir = os.path.join(f, 'capstone')
 #        #print(pkgdir)
@@ -164,23 +211,23 @@ class custom_build(build):
 #            pass
 
 setup(
-    provides     = ['capstone'],
-    package_dir  = {'capstone' : 'pyx'},
-    packages     = ['capstone'],
-    name         = 'capstone',
-    version      = VERSION,
-    cmdclass     = {'build_ext': build_ext, 'build': custom_build},
-    ext_modules  = ext_modules,
-    author       = 'Nguyen Anh Quynh',
-    author_email = 'aquynh@gmail.com',
-    description  = 'Capstone disassembly engine',
-    url          = 'https://www.capstone-engine.org',
-    classifiers  = [
-                'License :: OSI Approved :: BSD License',
-                'Programming Language :: Python :: 2',
-                'Programming Language :: Python :: 2.7',
-                'Programming Language :: Python :: 3',
-                ],
+    provides=['capstone'],
+    package_dir={'capstone': 'pyx'},
+    packages=['capstone'],
+    name='capstone',
+    version=VERSION,
+    cmdclass={'build_ext': build_ext, 'build': custom_build},
+    ext_modules=ext_modules,
+    author='Nguyen Anh Quynh',
+    author_email='aquynh@gmail.com',
+    description='Capstone disassembly engine',
+    url='https://www.capstone-engine.org',
+    classifiers=[
+        'License :: OSI Approved :: BSD License',
+        'Programming Language :: Python :: 2',
+        'Programming Language :: Python :: 2.7',
+        'Programming Language :: Python :: 3',
+    ],
     include_package_data=True,
     package_data={
         "capstone": ["lib/*", "include/capstone/*"],
