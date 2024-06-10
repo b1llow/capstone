@@ -143,15 +143,17 @@ Xtensa_FEATURE_HasDensity = 128,
 } xtensa_feature;
 
 typedef enum cs_xtensa_op_type {
-	Xtensa_OP_INVALID = CS_OP_INVALID, ///< = CS_OP_INVALID (Uninitialized).
-	Xtensa_OP_REG = CS_OP_REG,	   ///< = CS_OP_REG (Register operand).
-	Xtensa_OP_IMM = CS_OP_IMM,	   ///< = CS_OP_IMM (Immediate operand).
-	Xtensa_OP_MEM = CS_OP_MEM,	   ///< = CS_OP_MEM (Memory operand).
+	Xtensa_OP_INVALID = CS_OP_INVALID, ///< = (Uninitialized).
+	Xtensa_OP_REG = CS_OP_REG,	   ///< = (Register operand).
+	Xtensa_OP_IMM = CS_OP_IMM,	   ///< = (Immediate operand).
+	Xtensa_OP_MEM = CS_OP_MEM,	   ///< = (Memory operand).
+	Xtensa_OP_MEM_REG = CS_OP_MEM_REG, ///< = (Memory Register operand).
+	Xtensa_OP_MEM_IMM = CS_OP_MEM_IMM, ///< = (Memory Immediate operand).
 } cs_xtensa_op_type;
 
 typedef struct cs_xtensa_op_mem {
 	uint8_t base;
-	uint8_t index;
+	uint8_t disp;
 } cs_xtensa_op_mem;
 
 typedef struct cs_xtensa_operand {

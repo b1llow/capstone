@@ -66,7 +66,7 @@ static void set_instr_map_data(MCInst *MI)
 		operand->type = op->type;
 		MCOperand *mc = MCInst_getOperand(MI, i);
 
-#define check(_k) if ((op->type & _k) == _k)
+#define check(_k) if ((op->type & (_k)) == (_k))
 		check(CS_OP_IMM)
 		{
 			operand->imm = (int32_t)mc->ImmVal;
@@ -75,8 +75,22 @@ static void set_instr_map_data(MCInst *MI)
 		{
 			operand->reg = (uint8_t)mc->RegVal;
 		}
-		check(CS_OP_MEM)
+		check(CS_OP_MEM_REG)
 		{
+			operand->mem.base = mc->RegVal;
+		}
+		check(CS_OP_MEM_IMM)
+		{
+			if (i > 0) {
+				cs_xtensa_op *prev = (operand - 1);
+				if (prev->type == CS_OP_MEM_REG &&
+				    prev->access == op->access) {
+					prev->type = Xtensa_OP_MEM;
+					prev->mem.disp = mc->ImmVal;
+					continue;
+				}
+			}
+			operand->mem.disp = mc->ImmVal;
 		}
 
 		detail->op_count++;
@@ -166,11 +180,6 @@ void Xtensa_reg_access(const cs_insn *insn, cs_regs regs_read,
 			if ((op->mem.base != Xtensa_REG_INVALID) &&
 			    !arr_exist(regs_read, read_count, op->mem.base)) {
 				regs_read[read_count] = (uint16_t)op->mem.base;
-				read_count++;
-			}
-			if ((op->mem.index != Xtensa_REG_INVALID) &&
-			    !arr_exist(regs_read, read_count, op->mem.index)) {
-				regs_read[read_count] = (uint16_t)op->mem.index;
 				read_count++;
 			}
 			if ((insn->detail->writeback) &&

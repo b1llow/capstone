@@ -32,7 +32,7 @@ void print_insn_detail_xtensa(csh handle, cs_insn *ins, Stream *steam)
 			       "\t\t\t.mem.base: REG = %s\n"
 			       "\t\t\t.mem.disp: 0x%" PRIx8 "\n",
 			       i, cs_reg_name(handle, op->mem.base),
-			       op->mem.index);
+			       op->mem.disp);
 		check_access(CS_AC_READ) printf("\t\t\t.access: READ\n");
 		else check_access(CS_AC_WRITE) printf("\t\t\t.access: WRITE\n");
 		else check_access(CS_AC_READ | CS_AC_WRITE)
