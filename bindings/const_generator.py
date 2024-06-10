@@ -224,7 +224,7 @@ def write_enum_extra_options(outfile, templ, enum, enum_values):
             outfile.write((templ["line_format"] % (name, value)).encode("utf-8"))
 
 
-def is_with_prefix(x: str, prefix: str | List[str], target: str):
+def is_with_prefix(x, prefix, target):
     if target in excluded_prefixes and any(
         x.startswith(excl_pre) for excl_pre in excluded_prefixes[target]
     ):
