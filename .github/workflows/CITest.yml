@@ -1,10 +1,10 @@
 name: Run Test
-on: 
+on:
   push:
     paths-ignore:
       - ".gitignore"
       - "docs/**"
-      - "ChangeLog"      
+      - "ChangeLog"
       - "CREDITS.TXT"
       - "COMPILE.TXT"
       - "COMPILE_MSVC.TXT"
@@ -88,7 +88,6 @@ jobs:
         export LD_LIBRARY_PATH=`pwd`/tests/:$LD_LIBRARY_PATH
         wget https://github.com/groundx/capstonefuzz/raw/master/corpus/corpus-libFuzzer-capstone_fuzz_disasmnext-latest.zip
         unzip -q corpus-libFuzzer-capstone_fuzz_disasmnext-latest.zip -d suite/fuzz
-        git clone https://git.cryptomilk.org/projects/cmocka.git suite/cstest/cmocka
         chmod +x suite/cstest/build_cstest.sh
 
     - name: make
@@ -149,6 +148,11 @@ jobs:
         python suite/cstest/cstest_report.py -D -d suite/MC
         python suite/cstest/cstest_report.py -D -f suite/cstest/issues.cs
         python suite/cstest/cstest_report.py -D -f tests/cs_details/issue.cs
+
+    - name: download deps of cstest (make)
+      if: startsWith(matrix.config.build-system, 'make')
+      run: |
+        git clone https://git.cryptomilk.org/projects/cmocka.git suite/cstest/cmocka
 
     - name: cstest (make)
       if: startsWith(matrix.config.build-system, 'make')
@@ -220,7 +224,7 @@ jobs:
 
     - name: '🛠️ Win MSVC 64 setup'
       if: contains(matrix.config.name, 'MSVC 64')
-      uses: ilammy/msvc-dev-cmd@v1  
+      uses: ilammy/msvc-dev-cmd@v1
       with:
         arch: 'x64'
 
