@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-# Capstone Python bindings, by Nguyen Anh Quynnh <aquynh@gmail.com>
+# Capstone Python bindings test, by billow <billow.fun@gmail.com>
 
 from __future__ import print_function
 from capstone import *
@@ -12,7 +12,7 @@ all_tests = (
 )
 
 
-def print_insn_detail(insn):
+def print_insn_detail(insn: CsInsn):
     # print address, mnemonic and operands
     print("0x%x:\t%s\t%s" % (insn.address, insn.mnemonic, insn.op_str))
 
@@ -31,13 +31,22 @@ def print_insn_detail(insn):
             if i.type == CS_OP_MEM:
                 print("\t\toperands[%u].type: MEM" % c)
                 if i.mem.base != 0:
-                    print("\t\t\toperands[%u].mem.base: REG = %s" \
-                          % (c, insn.reg_name(i.mem.base)))
+                    print(f"\t\t\t.mem.base: REG = {insn.reg_name(i.mem.base)}")
                 if i.mem.disp != 0:
-                    print("\t\t\toperands[%u].mem.disp: 0x%s" \
-                          % (c, to_x(i.mem.disp)))
+                    print(f"\t\t\t.mem.disp:{i.mem.disp:#x}")
+            if i.access == CS_AC_READ:
+                print("\t\t\t.access: READ")
+            elif i.access == CS_AC_WRITE:
+                print("\t\t\t.access: WRITE")
+            elif i.access == (CS_AC_READ & CS_AC_WRITE):
+                print("\t\t\t.access: READ | WRITE")
             c += 1
-    print()
+
+    rs, ws = insn.regs_access()
+    if len(rs) > 0:
+        print(f"\tRegisters read: {' '.join(map(insn.reg_name, rs))}")
+    if len(ws) > 0:
+        print(f"\tRegisters modified: {' '.join(map(insn.reg_name, ws))}")
 
 
 # ## Test class Cs
@@ -53,7 +62,6 @@ def test_class():
             md.detail = True
             for insn in md.disasm(code, 0x1000):
                 print_insn_detail(insn)
-                print("0x%x:" % (insn.address + insn.size))
         except CsError as e:
             print("ERROR: %s" % e)
 

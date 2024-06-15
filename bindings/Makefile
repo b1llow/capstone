@@ -25,6 +25,7 @@ TEST_SH = $(TMPDIR)/test_sh
 TEST_TMS320C64X = $(TMPDIR)/test_tms320c64x
 TEST_ALPHA = $(TMPDIR)/test_alpha
 TEST_HPPA = $(TMPDIR)/test_hppa
+TEST_XTENSA = $(TMPDIR)/test_xtensa
 
 PYTHON3 ?= python3
 
@@ -68,6 +69,7 @@ expected:
 	../tests/test_tms320c64x > $(TEST_TMS320C64X)_e
 	../tests/test_alpha > $(TEST_ALPHA)_e
 	../tests/test_hppa > $(TEST_HPPA)_e
+	../tests/test_xtensa > $(TEST_XTENSA)_e
 
 python: FORCE
 	cd python && $(MAKE)
@@ -94,6 +96,7 @@ python: FORCE
 	$(PYTHON3) python/test_tms320c64x.py > $(TEST_TMS320C64X)_o
 	$(PYTHON3) python/test_alpha.py > $(TEST_ALPHA)_o
 	$(PYTHON3) python/test_hppa.py > $(TEST_HPPA)_o
+	$(PYTHON3) python/test_xtensa.py > $(TEST_XTENSA)_o
 	$(MAKE) test_diff
 
 java: FORCE
@@ -135,6 +138,7 @@ test_diff: FORCE
 	$(DIFF) $(TEST_TMS320C64X)_e $(TEST_TMS320C64X)_o
 	$(DIFF) $(TEST_ALPHA)_e $(TEST_ALPHA)_o
 	$(DIFF) $(TEST_HPPA)_e $(TEST_HPPA)_o
+	$(DIFF) $(TEST_XTENSA)_e $(TEST_XTENSA)_o
 
 clean:
 	rm -rf $(TMPDIR)
