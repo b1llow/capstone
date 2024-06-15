@@ -20,8 +20,8 @@ def stdout_cmp(f1, f2):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Comparing the standard output of two threads')
-    parser.add_argument("-f1", nargs='+', action='extend', type=str)
-    parser.add_argument("-f2", nargs='+', action='extend', type=str)
+    parser.add_argument("-f1", nargs='+')
+    parser.add_argument("-f2", nargs='+')
     argv = parser.parse_args(sys.argv[1:])
     res, dif = stdout_cmp(argv.f1, argv.f2)
     if not res:
