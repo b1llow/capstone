@@ -671,6 +671,7 @@ if(CAPSTONE_XTENSA_SUPPORT)
         arch/Xtensa/XtensaMapping.h
         arch/Xtensa/XtensaModule.h
     )
+    set(TEST_SOURCES ${TEST_SOURCES} test_xtensa.c)
 endif()
 
 if (CAPSTONE_OSXKERNEL_SUPPORT)
@@ -750,12 +751,19 @@ endif()
 
 if(CAPSTONE_BUILD_TESTS)
     set(CMAKE_FOLDER "Tests")
+    set(TESTS_SKIP_CMP test_skipdata test_iter)
     enable_testing()
     foreach(TSRC ${TEST_SOURCES})
         string(REGEX REPLACE ".c$" "" TBIN ${TSRC})
         add_executable(${TBIN} "tests/${TSRC}")
-        target_link_libraries(${TBIN} PRIVATE capstone)
-        add_test(NAME "capstone_${TBIN}" COMMAND ${TBIN})
+        target_link_libraries(${TBIN} PRIVATE capstone cs_print)
+        if (${TBIN} IN_LIST TESTS_SKIP_CMP)
+            add_test(NAME "capstone_${TBIN}" COMMAND ${TBIN})
+        else ()
+            add_test(NAME "capstone_${TBIN}"
+                COMMAND python3 ../bindings/stdout_cmp.py -f1 ./${TBIN} -f2 python3 ../bindings/python/${TBIN}.py
+            )
+        endif ()
     endforeach()
     if(CAPSTONE_ARM_SUPPORT)
         set(ARM_REGRESS_TEST test_arm_regression.c)
@@ -874,7 +882,7 @@ if(CAPSTONE_INSTALL)
     endif()
 endif()
 
-if (CAPSTONE_BUILD_CSTOOL OR CAPSTONE_BUILD_CSTEST)
+if (CAPSTONE_BUILD_CSTOOL OR CAPSTONE_BUILD_CSTEST OR CAPSTONE_BUILD_TESTS)
     file(GLOB CS_PRINT_SRC cstool/cstool_*.c cstool/getopt.c)
     add_library(cs_print OBJECT ${CS_PRINT_SRC})
     target_link_libraries(cs_print PUBLIC capstone)
