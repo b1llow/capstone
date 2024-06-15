@@ -119,11 +119,6 @@ jobs:
         # Work-around ASAN bug https://github.com/google/sanitizers/issues/1716
         sudo sysctl vm.mmap_rnd_bits=28
 
-    - name: Lower number of KASL randomized address bits
-      run: |
-        # Work-around ASAN bug https://github.com/google/sanitizers/issues/1716
-        sudo sysctl vm.mmap_rnd_bits=28
-
     - name: "Compatibility header test build"
       if: matrix.config.diet-build == 'OFF'
       env:
@@ -201,6 +196,11 @@ jobs:
         cd ..
         python -c "import capstone;print(capstone.debug())" | grep Cython
         BUILD_TESTS=no make tests
+
+    - name: run python binding test (cmake)
+      if: matrix.config.enable-asan == 'OFF' && startsWith(matrix.config.build-system, 'cmake')
+      run: |
+        ctest --test-dir build --output-on-failure
 
   Windows:
     runs-on: ${{ matrix.config.os }}
