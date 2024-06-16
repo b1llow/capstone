@@ -233,18 +233,23 @@ static DecodeStatus decodeMem32Operand(MCInst *Inst, uint64_t Imm,
 }
 
 /// Read three bytes from the ArrayRef and return 24 bit data
-static DecodeStatus readInstruction24(const uint8_t *Bytes,
-				      const unsigned BytesSize, uint64_t *Size,
-				      uint32_t *Insn)
+static DecodeStatus readInstruction24(MCInst *MI, uint64_t *SizeOut,
+				      const uint8_t *Bytes,
+				      const unsigned BytesSize, uint32_t *Insn)
 {
 	// We want to read exactly 3 Bytes of data.
 	if (BytesSize < 3) {
-		*Size = 0;
+		*SizeOut = 0;
 		return MCDisassembler_Fail;
 	}
 
-	*Insn = (Bytes[2] << 16) | (Bytes[1] << 8) | (Bytes[0] << 0);
-	*Size = 3;
+	if (MODE_IS_BIG_ENDIAN(MI->csh->mode))
+		*Insn = (Bytes[2]) | (Bytes[1] << 8) |
+			((uint32_t)Bytes[0] << 16);
+	else
+		*Insn = (Bytes[2] << 16) | (Bytes[1] << 8) |
+			((uint32_t)Bytes[0]);
+	*SizeOut = 3;
 	return MCDisassembler_Success;
 }
 
@@ -255,17 +260,16 @@ DecodeToMCInst(decode_to_MCInst, field_from_inst, uint32_t);
 DecodeInstruction(decodeInstruction, field_from_inst, decode_to_MCInst,
 		  uint32_t);
 
-static DecodeStatus getInstruction(MCInst *MI, uint64_t *Size,
+static DecodeStatus getInstruction(MCInst *MI, uint64_t *SizeOut,
 				   const uint8_t *Bytes, unsigned BytesSize,
 				   uint64_t Address)
 {
 	uint32_t Insn;
 	DecodeStatus Result;
 
-	Result = readInstruction24(Bytes, BytesSize, Size, &Insn);
+	Result = readInstruction24(MI, SizeOut, Bytes, BytesSize, &Insn);
 	if (Result == MCDisassembler_Fail)
 		return MCDisassembler_Fail;
-	//	LLVM_DEBUG(dbgs() << "Trying Xtensa 24-bit instruction table :\n");
 	Result = decodeInstruction(DecoderTable24, MI, Insn, Address, NULL);
 	return Result;
 }

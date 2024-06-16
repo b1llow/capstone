@@ -212,9 +212,7 @@ typedef struct cs_arch_config {
 	}
 #define CS_ARCH_CONFIG_XTENSA \
 	{ \
-		Xtensa_global_init,\
-		Xtensa_option,\
-		~(CS_MODE_LITTLE_ENDIAN | CS_MODE_XTENSA),\
+		Xtensa_global_init, Xtensa_option, ~(CS_MODE_XTENSA), \
 	}
 
 #ifdef CAPSTONE_USE_ARCH_REGISTRATION
