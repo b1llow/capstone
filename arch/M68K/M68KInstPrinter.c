@@ -33,6 +33,10 @@ static const char *const s_reg_names[] = {
 
 	"tt0",	    "tt1",	"crp",	 "acc",	 "acc0", "acc1", "acc2", "acc3",
 	"accext01", "accext23", "macsr", "mask",
+
+	"drp",	    "cal",	"val",	 "scc",	 "ac",	 "psr",	 "pcsr", "bad0",
+	"bad1",	    "bad2",	"bad3",	 "bad4", "bad5", "bad6", "bad7", "bac0",
+	"bac1",	    "bac2",	"bac3",	 "bac4", "bac5", "bac6", "bac7",
 };
 
 static const char *const s_instruction_names[] = {
@@ -120,7 +124,18 @@ static const char *const s_instruction_names[] = {
 	"msaac",     "mssac",	 "pbbs",     "pbbc",	  "pbls",
 	"pblc",	     "pbss",	 "pbsc",     "pbas",	  "pbac",
 	"pbws",	     "pbwc",	 "pbis",     "pbic",	  "pbgs",
-	"pbgc",	     "pbcs",	 "pbcc",
+	"pbgc",	     "pbcs",	 "pbcc",     "pvalid",	  "pflushs",
+	"pflushr",   "psave",	 "prestore", "pdbbs",	  "pdbbc",
+	"pdbls",     "pdblc",	 "pdbss",    "pdbsc",	  "pdbas",
+	"pdbac",     "pdbws",	 "pdbwc",    "pdbis",	  "pdbic",
+	"pdbgs",     "pdbgc",	 "pdbcs",    "pdbcc",	  "psbs",
+	"psbc",	     "psls",	 "pslc",     "psss",	  "pssc",
+	"psas",	     "psac",	 "psws",     "pswc",	  "psis",
+	"psic",	     "psgs",	 "psgc",     "pscs",	  "pscc",
+	"ptrapbs",   "ptrapbc",	 "ptrapls",  "ptraplc",	  "ptrapss",
+	"ptrapsc",   "ptrapas",	 "ptrapac",  "ptrapws",	  "ptrapwc",
+	"ptrapis",   "ptrapic",	 "ptrapgs",  "ptrapgc",	  "ptrapcs",
+	"ptrapcc",
 };
 #endif
 
