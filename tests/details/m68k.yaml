@@ -10180,3 +10180,1092 @@ test_cases:
                 - type: M68K_OP_REG
                   address_mode: M68K_AM_REG_DIRECT_ADDR
                   reg: a1
+
+  # Apollo 68080 (CS_MODE_M68K_080): integer additions, B registers, BANK
+  # prefix, AMMX and the 3-operand FPU. Encodings: Apollo 68080 Programmer's
+  # Reference Manual (AC68080PRM, November 2026 update).
+  - input:
+      bytes: [0x06, 0xc0, 0x80, 0x01]
+      arch: "m68k"
+      options: [CS_MODE_BIG_ENDIAN, CS_MODE_M68K_080]
+      address: 0x0
+    expected:
+      insns:
+        - asm_text: "addiw.l #$8001, d0"
+
+  - input:
+      bytes: [0x06, 0xd0, 0x00, 0x10]
+      arch: "m68k"
+      options: [CS_MODE_BIG_ENDIAN, CS_MODE_M68K_080]
+      address: 0x0
+    expected:
+      insns:
+        - asm_text: "addiw.l #$10, (a0)"
+
+  - input:
+      bytes: [0x4e, 0x03, 0x12, 0x34]
+      arch: "m68k"
+      options: [CS_MODE_BIG_ENDIAN, CS_MODE_M68K_080]
+      address: 0x0
+    expected:
+      insns:
+        - asm_text: "cmpiw.l #$1234, d3"
+
+  - input:
+      bytes: [0x30, 0x3d, 0x81, 0x23]
+      arch: "m68k"
+      options: [CS_MODE_BIG_ENDIAN, CS_MODE_M68K_080]
+      address: 0x0
+    expected:
+      insns:
+        - asm_text: "moviw.l #$8123, d0"
+
+  - input:
+      bytes: [0x32, 0xbd, 0x00, 0x01]
+      arch: "m68k"
+      options: [CS_MODE_BIG_ENDIAN, CS_MODE_M68K_080]
+      address: 0x0
+    expected:
+      insns:
+        - asm_text: "moviw.l #$1, (a1)"
+
+  - input:
+      bytes: [0x4b, 0xc0]
+      arch: "m68k"
+      options: [CS_MODE_BIG_ENDIAN, CS_MODE_M68K_080]
+      address: 0x0
+    expected:
+      insns:
+        - asm_text: "extub.l d0"
+
+  - input:
+      bytes: [0x4d, 0xc5]
+      arch: "m68k"
+      options: [CS_MODE_BIG_ENDIAN, CS_MODE_M68K_080]
+      address: 0x0
+    expected:
+      insns:
+        - asm_text: "extuw.l d5"
+
+  - input:
+      bytes: [0x43, 0x68, 0x00, 0x01]
+      arch: "m68k"
+      options: [CS_MODE_BIG_ENDIAN, CS_MODE_M68K_080]
+      address: 0x0
+    expected:
+      insns:
+        - asm_text: "lea.l $1(a0), b1"
+
+  - input:
+      bytes: [0x47, 0xca]
+      arch: "m68k"
+      options: [CS_MODE_BIG_ENDIAN, CS_MODE_M68K_080]
+      address: 0x0
+    expected:
+      insns:
+        - asm_text: "lea.l (b2), a3"
+
+  - input:
+      bytes: [0x50, 0x09]
+      arch: "m68k"
+      options: [CS_MODE_BIG_ENDIAN, CS_MODE_M68K_080]
+      address: 0x0
+    expected:
+      insns:
+        - asm_text: "addq.l #$8, b1"
+
+  - input:
+      bytes: [0x53, 0x0f]
+      arch: "m68k"
+      options: [CS_MODE_BIG_ENDIAN, CS_MODE_M68K_080]
+      address: 0x0
+    expected:
+      insns:
+        - asm_text: "subq.l #$1, b7"
+
+  - input:
+      bytes: [0xc5, 0x83]
+      arch: "m68k"
+      options: [CS_MODE_BIG_ENDIAN, CS_MODE_M68K_080]
+      address: 0x0
+    expected:
+      insns:
+        - asm_text: "cmp.l b3, d2"
+
+  - input:
+      bytes: [0x12, 0x08]
+      arch: "m68k"
+      options: [CS_MODE_BIG_ENDIAN, CS_MODE_M68K_080]
+      address: 0x0
+    expected:
+      insns:
+        - asm_text: "move.l b0, d1"
+
+  - input:
+      bytes: [0x12, 0x50]
+      arch: "m68k"
+      options: [CS_MODE_BIG_ENDIAN, CS_MODE_M68K_080]
+      address: 0x0
+    expected:
+      insns:
+        - asm_text: "movea.l (a0), b1"
+
+  - input:
+      bytes: [0x12, 0x48]
+      arch: "m68k"
+      options: [CS_MODE_BIG_ENDIAN, CS_MODE_M68K_080]
+      address: 0x0
+    expected:
+      insns:
+        - asm_text: "dc.w $1248"
+
+  - input:
+      bytes: [0x4c, 0xc8, 0x16, 0xd5]
+      arch: "m68k"
+      options: [CS_MODE_BIG_ENDIAN, CS_MODE_M68K_080]
+      address: 0x0
+    expected:
+      insns:
+        - asm_text: "perm #$6d5, a0, d1"
+
+  - input:
+      bytes: [0xf6, 0x31, 0x10, 0x10]
+      arch: "m68k"
+      options: [CS_MODE_BIG_ENDIAN, CS_MODE_M68K_080]
+      address: 0x0
+    expected:
+      insns:
+        - asm_text: "touch $10(a1, d1.w)"
+
+  - input:
+      bytes: [0x0e, 0x50, 0x20, 0xd1]
+      arch: "m68k"
+      options: [CS_MODE_BIG_ENDIAN, CS_MODE_M68K_080]
+      address: 0x0
+    expected:
+      insns:
+        - asm_text: "move2.w (a0), d2:d3"
+
+  - input:
+      bytes: [0x0e, 0x99, 0x28, 0xd1]
+      arch: "m68k"
+      options: [CS_MODE_BIG_ENDIAN, CS_MODE_M68K_080]
+      address: 0x0
+    expected:
+      insns:
+        - asm_text: "move2.l d2:d3, (a1)+"
+
+  - input:
+      bytes: [0x0e, 0x10, 0x00, 0x52]
+      arch: "m68k"
+      options: [CS_MODE_BIG_ENDIAN, CS_MODE_M68K_080]
+      address: 0x0
+    expected:
+      insns:
+        - asm_text: "movz2.b (a0), d0:d1"
+
+  - input:
+      bytes: [0x0e, 0x90, 0x10, 0x10]
+      arch: "m68k"
+      options: [CS_MODE_BIG_ENDIAN, CS_MODE_M68K_080]
+      address: 0x0
+    expected:
+      insns:
+        - asm_text: "movex.l (a0), d1"
+
+  - input:
+      bytes: [0x0e, 0x50, 0x28, 0x10]
+      arch: "m68k"
+      options: [CS_MODE_BIG_ENDIAN, CS_MODE_M68K_080]
+      address: 0x0
+    expected:
+      insns:
+        - asm_text: "movex.w d2, (a0)"
+
+  - input:
+      bytes: [0x0e, 0x50, 0x38, 0x13]
+      arch: "m68k"
+      options: [CS_MODE_BIG_ENDIAN, CS_MODE_M68K_080]
+      address: 0x0
+    expected:
+      insns:
+        - asm_text: "moveh.w d3, (a0)"
+
+  - input:
+      bytes: [0x0e, 0x50, 0x08, 0x00]
+      arch: "m68k"
+      options: [CS_MODE_BIG_ENDIAN, CS_MODE_M68K_080]
+      address: 0x0
+    expected:
+      insns:
+        - asm_text: "moves.w d0, (a0)"
+
+  - input:
+      bytes: [0x60, 0x49]
+      arch: "m68k"
+      options: [CS_MODE_BIG_ENDIAN, CS_MODE_M68K_080]
+      address: 0x1000
+    expected:
+      insns:
+        - asm_text: "bra.b $10ca"
+
+  - input:
+      bytes: [0x67, 0xfd]
+      arch: "m68k"
+      options: [CS_MODE_BIG_ENDIAN, CS_MODE_M68K_080]
+      address: 0x1000
+    expected:
+      insns:
+        - asm_text: "beq.b $f7e"
+
+  - input:
+      bytes: [0x61, 0x01]
+      arch: "m68k"
+      options: [CS_MODE_BIG_ENDIAN, CS_MODE_M68K_080]
+      address: 0x1000
+    expected:
+      insns:
+        - asm_text: "bsr.b $1082"
+
+  - input:
+      bytes: [0x51, 0xc8, 0xff, 0xfd]
+      arch: "m68k"
+      options: [CS_MODE_BIG_ENDIAN, CS_MODE_M68K_080]
+      address: 0x1000
+    expected:
+      insns:
+        - asm_text: "dbf.l d0, $ffe"
+
+  - input:
+      bytes: [0xf2, 0x49, 0x00, 0x01, 0xff, 0xfd]
+      arch: "m68k"
+      options: [CS_MODE_BIG_ENDIAN, CS_MODE_M68K_080]
+      address: 0x1000
+    expected:
+      insns:
+        - asm_text: "fdbeq.l d1, $1000"
+
+  - input:
+      bytes: [0xf2, 0x00, 0x60, 0x81]
+      arch: "m68k"
+      options: [CS_MODE_BIG_ENDIAN, CS_MODE_M68K_080]
+      address: 0x0
+    expected:
+      insns:
+        - asm_text: "fmoverz.l fp1, d0"
+
+  - input:
+      bytes: [0xf2, 0x10, 0x71, 0x03]
+      arch: "m68k"
+      options: [CS_MODE_BIG_ENDIAN, CS_MODE_M68K_080]
+      address: 0x0
+    expected:
+      insns:
+        - asm_text: "fmoveurz.w fp2, (a0)"
+
+  - input:
+      bytes: [0x4e, 0x7b, 0x08, 0x08]
+      arch: "m68k"
+      options: [CS_MODE_BIG_ENDIAN, CS_MODE_M68K_080]
+      address: 0x0
+    expected:
+      insns:
+        - asm_text: "movec d0, pcr"
+
+  - input:
+      bytes: [0x4e, 0x7a, 0x18, 0x09]
+      arch: "m68k"
+      options: [CS_MODE_BIG_ENDIAN, CS_MODE_M68K_080]
+      address: 0x0
+    expected:
+      insns:
+        - asm_text: "movec ccc, d1"
+
+  - input:
+      bytes: [0x4e, 0x7a, 0x00, 0x0c]
+      arch: "m68k"
+      options: [CS_MODE_BIG_ENDIAN, CS_MODE_M68K_080]
+      address: 0x0
+    expected:
+      insns:
+        - asm_text: "movec iep3, d0"
+
+  - input:
+      bytes: [0x71, 0x04, 0xd2, 0x86]
+      arch: "m68k"
+      options: [CS_MODE_BIG_ENDIAN, CS_MODE_M68K_080]
+      address: 0x0
+    expected:
+      insns:
+        - asm_text: "add.l e6, d1"
+
+  - input:
+      bytes: [0x71, 0x05, 0x06, 0x81, 0x00, 0x00, 0x00, 0x05]
+      arch: "m68k"
+      options: [CS_MODE_BIG_ENDIAN, CS_MODE_M68K_080]
+      address: 0x0
+    expected:
+      insns:
+        - asm_text: "addi.l #$5, e1"
+
+  - input:
+      bytes: [0x71, 0x0a, 0x4a, 0x86]
+      arch: "m68k"
+      options: [CS_MODE_BIG_ENDIAN, CS_MODE_M68K_080]
+      address: 0x0
+    expected:
+      insns:
+        - asm_text: "tst.l e14"
+
+  - input:
+      bytes: [0x71, 0x01, 0x4a, 0x86]
+      arch: "m68k"
+      options: [CS_MODE_BIG_ENDIAN, CS_MODE_M68K_080]
+      address: 0x0
+    expected:
+      insns:
+        - asm_text: "tst.l e6"
+
+  - input:
+      bytes: [0x71, 0x04, 0x4a, 0x46]
+      arch: "m68k"
+      options: [CS_MODE_BIG_ENDIAN, CS_MODE_M68K_080]
+      address: 0x0
+    expected:
+      insns:
+        - asm_text: "bank #$1, #$0, #$0"
+        - asm_text: "tst.w d6"
+
+  - input:
+      bytes: [0x7d, 0x14, 0xf2, 0x04, 0x51, 0xa3]
+      arch: "m68k"
+      options: [CS_MODE_BIG_ENDIAN, CS_MODE_M68K_080]
+      address: 0x0
+    expected:
+      insns:
+        - asm_text: "fmul.w e4, fp3, e5"
+
+  - input:
+      bytes: [0x71, 0x01, 0x4c, 0xc8, 0x16, 0xd5]
+      arch: "m68k"
+      options: [CS_MODE_BIG_ENDIAN, CS_MODE_M68K_080]
+      address: 0x0
+    expected:
+      insns:
+        - asm_text: "perm #$6d5, a0, e1"
+
+  - input:
+      bytes: [0x73, 0x00, 0xd2, 0x80]
+      arch: "m68k"
+      options: [CS_MODE_BIG_ENDIAN, CS_MODE_M68K_080]
+      address: 0x0
+    expected:
+      insns:
+        - asm_text: "add.l d0, d1, d0"
+
+  - input:
+      bytes: [0x71, 0x01, 0x43, 0xd0]
+      arch: "m68k"
+      options: [CS_MODE_BIG_ENDIAN, CS_MODE_M68K_080]
+      address: 0x0
+    expected:
+      insns:
+        - asm_text: "bank #$0, #$1, #$0"
+        - asm_text: "lea.l (a0), a1"
+
+  - input:
+      bytes: [0x71, 0x81]
+      arch: "m68k"
+      options: [CS_MODE_BIG_ENDIAN, CS_MODE_M68K_080]
+      address: 0x0
+    expected:
+      insns:
+        - asm_text: "dc.w $7181"
+
+  - input:
+      bytes: [0xfe, 0x01, 0x23, 0x11]
+      arch: "m68k"
+      options: [CS_MODE_BIG_ENDIAN, CS_MODE_M68K_080]
+      address: 0x0
+    expected:
+      insns:
+        - asm_text: "paddw d1, d2, d3"
+
+  - input:
+      bytes: [0xff, 0x41, 0x99, 0x10]
+      arch: "m68k"
+      options: [CS_MODE_BIG_ENDIAN, CS_MODE_M68K_080]
+      address: 0x0
+    expected:
+      insns:
+        - asm_text: "paddb e9, e1, e17"
+
+  - input:
+      bytes: [0xfe, 0x18, 0x00, 0x01]
+      arch: "m68k"
+      options: [CS_MODE_BIG_ENDIAN, CS_MODE_M68K_080]
+      address: 0x0
+    expected:
+      insns:
+        - asm_text: "load (a0)+, d0"
+
+  - input:
+      bytes: [0xfe, 0x3c, 0x00, 0x01, 0x12, 0x34, 0x56, 0x78, 0x9a, 0xbc, 0xde, 0xf0]
+      arch: "m68k"
+      options: [CS_MODE_BIG_ENDIAN, CS_MODE_M68K_080]
+      address: 0x0
+    expected:
+      insns:
+        - asm_text: "load #$123456789abcdef0, d0"
+
+  - input:
+      bytes: [0xff, 0x3c, 0x00, 0x01, 0x12, 0x34]
+      arch: "m68k"
+      options: [CS_MODE_BIG_ENDIAN, CS_MODE_M68K_080]
+      address: 0x0
+    expected:
+      insns:
+        - asm_text: "load #$1234123412341234, d0"
+
+  - input:
+      bytes: [0xff, 0x11, 0x18, 0x01]
+      arch: "m68k"
+      options: [CS_MODE_BIG_ENDIAN, CS_MODE_M68K_080]
+      address: 0x0
+    expected:
+      insns:
+        - asm_text: "loadi (b1), e0"
+
+  - input:
+      bytes: [0xfe, 0x10, 0x10, 0x04]
+      arch: "m68k"
+      options: [CS_MODE_BIG_ENDIAN, CS_MODE_M68K_080]
+      address: 0x0
+    expected:
+      insns:
+        - asm_text: "store d1, (a0)"
+
+  - input:
+      bytes: [0xfe, 0x21, 0xb1, 0x04]
+      arch: "m68k"
+      options: [CS_MODE_BIG_ENDIAN, CS_MODE_M68K_080]
+      address: 0x0
+    expected:
+      insns:
+        - asm_text: "storei e3, -(a1)"
+
+  - input:
+      bytes: [0xfe, 0x12, 0x01, 0x05]
+      arch: "m68k"
+      options: [CS_MODE_BIG_ENDIAN, CS_MODE_M68K_080]
+      address: 0x0
+    expected:
+      insns:
+        - asm_text: "storem d0, d1, (a2)"
+
+  - input:
+      bytes: [0xfe, 0x10, 0x03, 0x26]
+      arch: "m68k"
+      options: [CS_MODE_BIG_ENDIAN, CS_MODE_M68K_080]
+      address: 0x0
+    expected:
+      insns:
+        - asm_text: "storem3 d0, #$3, (a0)"
+
+  - input:
+      bytes: [0xfe, 0x28, 0x23, 0x24, 0x00, 0x10]
+      arch: "m68k"
+      options: [CS_MODE_BIG_ENDIAN, CS_MODE_M68K_080]
+      address: 0x0
+    expected:
+      insns:
+        - asm_text: "storec d2, d3, $10(a0)"
+
+  - input:
+      bytes: [0xfe, 0x18, 0x12, 0x25]
+      arch: "m68k"
+      options: [CS_MODE_BIG_ENDIAN, CS_MODE_M68K_080]
+      address: 0x0
+    expected:
+      insns:
+        - asm_text: "storeilm d1, d2, (a0)+"
+
+  - input:
+      bytes: [0xfe, 0x02, 0x01, 0x06]
+      arch: "m68k"
+      options: [CS_MODE_BIG_ENDIAN, CS_MODE_M68K_080]
+      address: 0x0
+    expected:
+      insns:
+        - asm_text: "packuswb d0, d1, d2"
+
+  - input:
+      bytes: [0xfe, 0x10, 0x01, 0x07]
+      arch: "m68k"
+      options: [CS_MODE_BIG_ENDIAN, CS_MODE_M68K_080]
+      address: 0x0
+    expected:
+      insns:
+        - asm_text: "pack3216 d0, d1, (a0)"
+
+  - input:
+      bytes: [0xfe, 0x00, 0x02, 0x1e]
+      arch: "m68k"
+      options: [CS_MODE_BIG_ENDIAN, CS_MODE_M68K_080]
+      address: 0x0
+    expected:
+      insns:
+        - asm_text: "unpack1632 d0, d2:d3"
+
+  - input:
+      bytes: [0xfe, 0x00, 0x12, 0x08]
+      arch: "m68k"
+      options: [CS_MODE_BIG_ENDIAN, CS_MODE_M68K_080]
+      address: 0x0
+    expected:
+      insns:
+        - asm_text: "pand d0, d1, d2"
+
+  - input:
+      bytes: [0xfe, 0x00, 0x12, 0x09]
+      arch: "m68k"
+      options: [CS_MODE_BIG_ENDIAN, CS_MODE_M68K_080]
+      address: 0x0
+    expected:
+      insns:
+        - asm_text: "por d0, d1, d2"
+
+  - input:
+      bytes: [0xfe, 0x00, 0x12, 0x0a]
+      arch: "m68k"
+      options: [CS_MODE_BIG_ENDIAN, CS_MODE_M68K_080]
+      address: 0x0
+    expected:
+      insns:
+        - asm_text: "peor d0, d1, d2"
+
+  - input:
+      bytes: [0xfe, 0x00, 0x12, 0x0b]
+      arch: "m68k"
+      options: [CS_MODE_BIG_ENDIAN, CS_MODE_M68K_080]
+      address: 0x0
+    expected:
+      insns:
+        - asm_text: "pandn d0, d1, d2"
+
+  - input:
+      bytes: [0xfe, 0x00, 0x12, 0x0c]
+      arch: "m68k"
+      options: [CS_MODE_BIG_ENDIAN, CS_MODE_M68K_080]
+      address: 0x0
+    expected:
+      insns:
+        - asm_text: "pavgb d0, d1, d2"
+
+  - input:
+      bytes: [0xfe, 0x00, 0x12, 0x10]
+      arch: "m68k"
+      options: [CS_MODE_BIG_ENDIAN, CS_MODE_M68K_080]
+      address: 0x0
+    expected:
+      insns:
+        - asm_text: "paddb d0, d1, d2"
+
+  - input:
+      bytes: [0xfe, 0x00, 0x12, 0x12]
+      arch: "m68k"
+      options: [CS_MODE_BIG_ENDIAN, CS_MODE_M68K_080]
+      address: 0x0
+    expected:
+      insns:
+        - asm_text: "psubb d0, d1, d2"
+
+  - input:
+      bytes: [0xfe, 0x00, 0x12, 0x13]
+      arch: "m68k"
+      options: [CS_MODE_BIG_ENDIAN, CS_MODE_M68K_080]
+      address: 0x0
+    expected:
+      insns:
+        - asm_text: "psubw d0, d1, d2"
+
+  - input:
+      bytes: [0xfe, 0x00, 0x12, 0x14]
+      arch: "m68k"
+      options: [CS_MODE_BIG_ENDIAN, CS_MODE_M68K_080]
+      address: 0x0
+    expected:
+      insns:
+        - asm_text: "paddusb d0, d1, d2"
+
+  - input:
+      bytes: [0xfe, 0x00, 0x12, 0x15]
+      arch: "m68k"
+      options: [CS_MODE_BIG_ENDIAN, CS_MODE_M68K_080]
+      address: 0x0
+    expected:
+      insns:
+        - asm_text: "paddusw d0, d1, d2"
+
+  - input:
+      bytes: [0xfe, 0x00, 0x12, 0x16]
+      arch: "m68k"
+      options: [CS_MODE_BIG_ENDIAN, CS_MODE_M68K_080]
+      address: 0x0
+    expected:
+      insns:
+        - asm_text: "psubusb d0, d1, d2"
+
+  - input:
+      bytes: [0xfe, 0x00, 0x12, 0x17]
+      arch: "m68k"
+      options: [CS_MODE_BIG_ENDIAN, CS_MODE_M68K_080]
+      address: 0x0
+    expected:
+      insns:
+        - asm_text: "psubusw d0, d1, d2"
+
+  - input:
+      bytes: [0xfe, 0x00, 0x12, 0x18]
+      arch: "m68k"
+      options: [CS_MODE_BIG_ENDIAN, CS_MODE_M68K_080]
+      address: 0x0
+    expected:
+      insns:
+        - asm_text: "pmul88 d0, d1, d2"
+
+  - input:
+      bytes: [0xfe, 0x00, 0x12, 0x19]
+      arch: "m68k"
+      options: [CS_MODE_BIG_ENDIAN, CS_MODE_M68K_080]
+      address: 0x0
+    expected:
+      insns:
+        - asm_text: "pmula d0, d1, d2"
+
+  - input:
+      bytes: [0xfe, 0x00, 0x12, 0x1a]
+      arch: "m68k"
+      options: [CS_MODE_BIG_ENDIAN, CS_MODE_M68K_080]
+      address: 0x0
+    expected:
+      insns:
+        - asm_text: "pmulh d0, d1, d2"
+
+  - input:
+      bytes: [0xfe, 0x00, 0x12, 0x1b]
+      arch: "m68k"
+      options: [CS_MODE_BIG_ENDIAN, CS_MODE_M68K_080]
+      address: 0x0
+    expected:
+      insns:
+        - asm_text: "pmull d0, d1, d2"
+
+  - input:
+      bytes: [0xfe, 0x00, 0x12, 0x1c]
+      arch: "m68k"
+      options: [CS_MODE_BIG_ENDIAN, CS_MODE_M68K_080]
+      address: 0x0
+    expected:
+      insns:
+        - asm_text: "bflyb d0, d1, d2:d3"
+
+  - input:
+      bytes: [0xfe, 0x00, 0x12, 0x1d]
+      arch: "m68k"
+      options: [CS_MODE_BIG_ENDIAN, CS_MODE_M68K_080]
+      address: 0x0
+    expected:
+      insns:
+        - asm_text: "bflyw d0, d1, d2:d3"
+
+  - input:
+      bytes: [0xfe, 0x00, 0x12, 0x20]
+      arch: "m68k"
+      options: [CS_MODE_BIG_ENDIAN, CS_MODE_M68K_080]
+      address: 0x0
+    expected:
+      insns:
+        - asm_text: "pcmpeqb d0, d1, d2"
+
+  - input:
+      bytes: [0xfe, 0x00, 0x12, 0x21]
+      arch: "m68k"
+      options: [CS_MODE_BIG_ENDIAN, CS_MODE_M68K_080]
+      address: 0x0
+    expected:
+      insns:
+        - asm_text: "pcmpeqw d0, d1, d2"
+
+  - input:
+      bytes: [0xfe, 0x00, 0x12, 0x22]
+      arch: "m68k"
+      options: [CS_MODE_BIG_ENDIAN, CS_MODE_M68K_080]
+      address: 0x0
+    expected:
+      insns:
+        - asm_text: "pcmphib d0, d1, d2"
+
+  - input:
+      bytes: [0xfe, 0x00, 0x12, 0x23]
+      arch: "m68k"
+      options: [CS_MODE_BIG_ENDIAN, CS_MODE_M68K_080]
+      address: 0x0
+    expected:
+      insns:
+        - asm_text: "pcmphiw d0, d1, d2"
+
+  - input:
+      bytes: [0xfe, 0x00, 0x12, 0x2c]
+      arch: "m68k"
+      options: [CS_MODE_BIG_ENDIAN, CS_MODE_M68K_080]
+      address: 0x0
+    expected:
+      insns:
+        - asm_text: "pcmpgeb d0, d1, d2"
+
+  - input:
+      bytes: [0xfe, 0x00, 0x12, 0x2d]
+      arch: "m68k"
+      options: [CS_MODE_BIG_ENDIAN, CS_MODE_M68K_080]
+      address: 0x0
+    expected:
+      insns:
+        - asm_text: "pcmpgew d0, d1, d2"
+
+  - input:
+      bytes: [0xfe, 0x00, 0x12, 0x2e]
+      arch: "m68k"
+      options: [CS_MODE_BIG_ENDIAN, CS_MODE_M68K_080]
+      address: 0x0
+    expected:
+      insns:
+        - asm_text: "pcmpgtb d0, d1, d2"
+
+  - input:
+      bytes: [0xfe, 0x00, 0x12, 0x2f]
+      arch: "m68k"
+      options: [CS_MODE_BIG_ENDIAN, CS_MODE_M68K_080]
+      address: 0x0
+    expected:
+      insns:
+        - asm_text: "pcmpgtw d0, d1, d2"
+
+  - input:
+      bytes: [0xfe, 0x00, 0x02, 0x28]
+      arch: "m68k"
+      options: [CS_MODE_BIG_ENDIAN, CS_MODE_M68K_080]
+      address: 0x0
+    expected:
+      insns:
+        - asm_text: "c2p d0, d2"
+
+  - input:
+      bytes: [0xfe, 0x00, 0x12, 0x29]
+      arch: "m68k"
+      options: [CS_MODE_BIG_ENDIAN, CS_MODE_M68K_080]
+      address: 0x0
+    expected:
+      insns:
+        - asm_text: "bsel d0, d1, d2"
+
+  - input:
+      bytes: [0xfe, 0x04, 0x02, 0x2a]
+      arch: "m68k"
+      options: [CS_MODE_BIG_ENDIAN, CS_MODE_M68K_080]
+      address: 0x0
+    expected:
+      insns:
+        - asm_text: "minterm d4-d7, d2"
+
+  - input:
+      bytes: [0xfe, 0x08, 0x04, 0x02]
+      arch: "m68k"
+      options: [CS_MODE_BIG_ENDIAN, CS_MODE_M68K_080]
+      address: 0x0
+    expected:
+      insns:
+        - asm_text: "transhi e0-e3, d4:d5"
+
+  - input:
+      bytes: [0xfe, 0x08, 0x04, 0x03]
+      arch: "m68k"
+      options: [CS_MODE_BIG_ENDIAN, CS_MODE_M68K_080]
+      address: 0x0
+    expected:
+      insns:
+        - asm_text: "translo e0-e3, d4:d5"
+
+  - input:
+      bytes: [0xff, 0x00, 0x04, 0x02]
+      arch: "m68k"
+      options: [CS_MODE_BIG_ENDIAN, CS_MODE_M68K_080]
+      address: 0x0
+    expected:
+      insns:
+        - asm_text: "transhi e8-e11, d4:d5"
+
+  - input:
+      bytes: [0xfe, 0x00, 0x12, 0x30]
+      arch: "m68k"
+      options: [CS_MODE_BIG_ENDIAN, CS_MODE_M68K_080]
+      address: 0x0
+    expected:
+      insns:
+        - asm_text: "pminsb d0, d1, d2"
+
+  - input:
+      bytes: [0xfe, 0x00, 0x12, 0x31]
+      arch: "m68k"
+      options: [CS_MODE_BIG_ENDIAN, CS_MODE_M68K_080]
+      address: 0x0
+    expected:
+      insns:
+        - asm_text: "pminsw d0, d1, d2"
+
+  - input:
+      bytes: [0xfe, 0x00, 0x12, 0x32]
+      arch: "m68k"
+      options: [CS_MODE_BIG_ENDIAN, CS_MODE_M68K_080]
+      address: 0x0
+    expected:
+      insns:
+        - asm_text: "pminub d0, d1, d2"
+
+  - input:
+      bytes: [0xfe, 0x00, 0x12, 0x33]
+      arch: "m68k"
+      options: [CS_MODE_BIG_ENDIAN, CS_MODE_M68K_080]
+      address: 0x0
+    expected:
+      insns:
+        - asm_text: "pminuw d0, d1, d2"
+
+  - input:
+      bytes: [0xfe, 0x00, 0x12, 0x34]
+      arch: "m68k"
+      options: [CS_MODE_BIG_ENDIAN, CS_MODE_M68K_080]
+      address: 0x0
+    expected:
+      insns:
+        - asm_text: "pmaxsb d0, d1, d2"
+
+  - input:
+      bytes: [0xfe, 0x00, 0x12, 0x35]
+      arch: "m68k"
+      options: [CS_MODE_BIG_ENDIAN, CS_MODE_M68K_080]
+      address: 0x0
+    expected:
+      insns:
+        - asm_text: "pmaxsw d0, d1, d2"
+
+  - input:
+      bytes: [0xfe, 0x00, 0x12, 0x36]
+      arch: "m68k"
+      options: [CS_MODE_BIG_ENDIAN, CS_MODE_M68K_080]
+      address: 0x0
+    expected:
+      insns:
+        - asm_text: "pmaxub d0, d1, d2"
+
+  - input:
+      bytes: [0xfe, 0x00, 0x12, 0x37]
+      arch: "m68k"
+      options: [CS_MODE_BIG_ENDIAN, CS_MODE_M68K_080]
+      address: 0x0
+    expected:
+      insns:
+        - asm_text: "pmaxuw d0, d1, d2"
+
+  - input:
+      bytes: [0xfe, 0x00, 0x12, 0x38]
+      arch: "m68k"
+      options: [CS_MODE_BIG_ENDIAN, CS_MODE_M68K_080]
+      address: 0x0
+    expected:
+      insns:
+        - asm_text: "lslq d0, d1, d2"
+
+  - input:
+      bytes: [0xfe, 0x00, 0x12, 0x39]
+      arch: "m68k"
+      options: [CS_MODE_BIG_ENDIAN, CS_MODE_M68K_080]
+      address: 0x0
+    expected:
+      insns:
+        - asm_text: "lsrq d0, d1, d2"
+
+  - input:
+      bytes: [0xfe, 0x3f, 0x9e, 0x00, 0x32, 0x10, 0xab, 0x78]
+      arch: "m68k"
+      options: [CS_MODE_BIG_ENDIAN, CS_MODE_M68K_080]
+      address: 0x0
+    expected:
+      insns:
+        - asm_text: "vperm #$3210ab78, d0, e1, e6"
+
+  - input:
+      bytes: [0xfe, 0x30, 0x34, 0x3e, 0xa0, 0x09]
+      arch: "m68k"
+      options: [CS_MODE_BIG_ENDIAN, CS_MODE_M68K_080]
+      address: 0x0
+    expected:
+      insns:
+        - asm_text: "tex a0, a1, a2, d3, d4"
+
+  - input:
+      bytes: [0xfe, 0x30, 0x34, 0x3f, 0xa0, 0x09]
+      arch: "m68k"
+      options: [CS_MODE_BIG_ENDIAN, CS_MODE_M68K_080]
+      address: 0x0
+    expected:
+      insns:
+        - asm_text: "rex d4, a0, a1, a2, d3"
+
+  - input:
+      bytes: [0xfe, 0x3a, 0x00, 0x01, 0x00, 0x10]
+      arch: "m68k"
+      options: [CS_MODE_BIG_ENDIAN, CS_MODE_M68K_080]
+      address: 0x1000
+    expected:
+      insns:
+        - asm_text: "load $1012(pc), d0"
+
+  - input:
+      bytes: [0xfe, 0x00, 0x00, 0x0d]
+      arch: "m68k"
+      options: [CS_MODE_BIG_ENDIAN, CS_MODE_M68K_080]
+      address: 0x0
+    expected:
+      insns:
+        - asm_text: "dc.w $fe00"
+
+  - input:
+      bytes: [0xfe, 0x3c, 0x10, 0x04]
+      arch: "m68k"
+      options: [CS_MODE_BIG_ENDIAN, CS_MODE_M68K_080]
+      address: 0x0
+    expected:
+      insns:
+        - asm_text: "dc.w $fe3c"
+        - asm_text: "move.b d4, d0"
+
+  - input:
+      bytes: [0xfc, 0x10, 0x12, 0x28]
+      arch: "m68k"
+      options: [CS_MODE_BIG_ENDIAN, CS_MODE_M68K_080]
+      address: 0x0
+    expected:
+      insns:
+        - asm_text: "fadd.s (a0), fp1, fp2"
+
+  - input:
+      bytes: [0xfc, 0x03, 0x4d, 0x8b]
+      arch: "m68k"
+      options: [CS_MODE_BIG_ENDIAN, CS_MODE_M68K_080]
+      address: 0x0
+    expected:
+      insns:
+        - asm_text: "fmul fp3, fp4, e5"
+
+  - input:
+      bytes: [0xfc, 0x3c, 0x00, 0x4d, 0x3f, 0xf0, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]
+      arch: "m68k"
+      options: [CS_MODE_BIG_ENDIAN, CS_MODE_M68K_080]
+      address: 0x0
+    expected:
+      insns:
+        - asm_text: "fsqrt.d #1.000000, fp0"
+
+  - input:
+      bytes: [0xfc, 0x01, 0x23, 0x0c]
+      arch: "m68k"
+      options: [CS_MODE_BIG_ENDIAN, CS_MODE_M68K_080]
+      address: 0x0
+    expected:
+      insns:
+        - asm_text: "fdiv.l d1, fp2, fp3"
+
+  - input:
+      bytes: [0xfd, 0x01, 0x01, 0x29]
+      arch: "m68k"
+      options: [CS_MODE_BIG_ENDIAN, CS_MODE_M68K_080]
+      address: 0x0
+    expected:
+      insns:
+        - asm_text: "fsub.s e9, fp0, fp1"
+
+  - input:
+      bytes: [0xfe, 0x01, 0x23, 0x11]
+      arch: "m68k"
+      options: [CS_MODE_BIG_ENDIAN, CS_MODE_M68K_060]
+    expected:
+      insns:
+        - asm_text: "dc.w $fe01"
+        - asm_text: "move.l (a1), -(a1)"
+
+  - input:
+      bytes: [0x06, 0xc0, 0x80, 0x01]
+      arch: "m68k"
+      options: [CS_MODE_BIG_ENDIAN, CS_MODE_M68K_060]
+    expected:
+      insns:
+        - asm_text: "dc.w $6c0"
+        - asm_text: "or.b d1, d0"
+
+  - input:
+      bytes: [0x4c, 0xc8, 0x16, 0xd5]
+      arch: "m68k"
+      options: [CS_MODE_BIG_ENDIAN, CS_MODE_M68K_060]
+    expected:
+      insns: []
+
+  - input:
+      bytes: [0x71, 0x04, 0xd2, 0x86]
+      arch: "m68k"
+      options: [CS_MODE_BIG_ENDIAN, CS_MODE_M68K_060]
+    expected:
+      insns:
+        - asm_text: "dc.w $7104"
+        - asm_text: "add.l d6, d1"
+
+  - input:
+      bytes: [0x7d, 0x14, 0xf2, 0x04, 0x51, 0xa3]
+      arch: "m68k"
+      options: [CS_OPT_DETAIL, CS_MODE_BIG_ENDIAN, CS_MODE_M68K_080]
+      address: 0x0
+    expected:
+      insns:
+        - asm_text: "fmul.w e4, fp3, e5"
+          details:
+            m68k:
+              operands:
+                - type: M68K_OP_REG
+                  address_mode: M68K_AM_REG_DIRECT_DATA
+                  reg: e4
+                - type: M68K_OP_REG
+                  reg: fp3
+                - type: M68K_OP_REG
+                  address_mode: M68K_AM_REG_DIRECT_DATA
+                  reg: e5
+
+  - input:
+      bytes: [0xff, 0x41, 0x99, 0x10]
+      arch: "m68k"
+      options: [CS_OPT_DETAIL, CS_MODE_BIG_ENDIAN, CS_MODE_M68K_080]
+      address: 0x0
+    expected:
+      insns:
+        - asm_text: "paddb e9, e1, e17"
+          details:
+            m68k:
+              operands:
+                - type: M68K_OP_REG
+                  address_mode: M68K_AM_REG_DIRECT_DATA
+                  reg: e9
+                - type: M68K_OP_REG
+                  address_mode: M68K_AM_REG_DIRECT_DATA
+                  reg: e1
+                - type: M68K_OP_REG
+                  address_mode: M68K_AM_REG_DIRECT_DATA
+                  reg: e17

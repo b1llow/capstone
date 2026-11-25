@@ -467,6 +467,7 @@ static struct {
 	{ "m68k30", "m68k, 68030", CS_ARCH_M68K, CS_MODE_M68K_030 },
 	{ "m68k40", "m68k, 68040", CS_ARCH_M68K, CS_MODE_M68K_040 },
 	{ "m68k60", "m68k, 68060", CS_ARCH_M68K, CS_MODE_M68K_060 },
+	{ "m68k80", "m68k, Apollo 68080", CS_ARCH_M68K, CS_MODE_M68K_080 },
 	{ "m68kcpu32", "m68k, cpu32", CS_ARCH_M68K, CS_MODE_M68K_CPU32 },
 	{ "m68kcf", "m68k, ColdFire all features", CS_ARCH_M68K,
 	  CS_MODE_BIG_ENDIAN | CS_MODE_M68K_COLDFIRE },

@@ -136,6 +136,7 @@ static void d68040_pflush(m68k_info *info);
 static void d68040_ptest(m68k_info *info);
 static void d68040_cpush(m68k_info *info);
 static int instruction_is_valid(m68k_info *info, uint32_t word_check);
+static m68k_reg m68k_movec_extra_reg(const m68k_info *info, uint32_t rc);
 
 typedef struct {
 	void (*instruction)(m68k_info *info); /* handler function */
@@ -4052,6 +4053,7 @@ static void d68010_movec(m68k_info *info)
 		reg = M68K_REG_SRP;
 		break;
 	default:
+		reg = m68k_movec_extra_reg(info, extension & 0xfff);
 		break;
 	}
 
@@ -5625,6 +5627,1078 @@ static int instruction_is_valid(m68k_info *info, const uint32_t word_check)
 	return 1;
 }
 
+/* ======================================================================== */
+/* ============================ APOLLO 68080 ============================== */
+/* ======================================================================== */
+
+/* The Apollo 68080 runs the 68060 instruction set and adds the encodings
+ * below. They follow the Apollo 68080 Programmer's Reference Manual
+ * (AC68080PRM, November 2026 update), as published in the Apollo Team's
+ * ApolloKnowledgeBase (core/cpu-68080/prm/). The LineA forms (CLR.Q, MOV3Q,
+ * LineA MOVIW.L, MOVS, MOVZ) are not decoded: the manual marks them as
+ * present only on unreleased test cores 10280-10904, and LineA stays an
+ * emulator trap on every released core.
+ */
+
+/* Apollo register numbers used by BANK, AMMX and the 3-operand FPU:
+ * 0-7 are the legacy registers (Dn or FPn), 8-31 are E0-E23. */
+static m68k_reg m68080_reg(unsigned int num, m68k_reg legacy_base)
+{
+	if (num < 8)
+		return legacy_base + num;
+	return M68K_REG_E0 + (num - 8);
+}
+
+static void m68080_set_reg(cs_m68k_op *op, m68k_reg reg)
+{
+	op->type = M68K_OP_REG;
+	op->reg = reg;
+	if ((reg >= M68K_REG_D0 && reg <= M68K_REG_D7) ||
+	    (reg >= M68K_REG_E0 && reg <= M68K_REG_E23))
+		op->address_mode = M68K_AM_REG_DIRECT_DATA;
+	else if ((reg >= M68K_REG_A0 && reg <= M68K_REG_A7) ||
+		 (reg >= M68K_REG_B0 && reg <= M68K_REG_B7))
+		op->address_mode = M68K_AM_REG_DIRECT_ADDR;
+	else
+		op->address_mode = M68K_AM_NONE;
+}
+
+static void m68080_set_reg_pair(cs_m68k_op *op, m68k_reg reg_0, m68k_reg reg_1)
+{
+	op->address_mode = M68K_AM_NONE;
+	op->type = M68K_OP_REG_PAIR;
+	op->reg_pair.reg_0 = reg_0;
+	op->reg_pair.reg_1 = reg_1;
+}
+
+/* 4-bit register field: 0-7 = D0-D7, 8-15 = A0-A7. */
+static m68k_reg m68080_da_reg(unsigned int num)
+{
+	return (num & 8) ? M68K_REG_A0 + (num & 7) : M68K_REG_D0 + (num & 7);
+}
+
+/* Effective-address classes of a raw 6-bit EA field. */
+static bool m68080_ea_exists(uint32_t ea)
+{
+	return (ea >> 3) != M68K_EA_MODE_EXTENDED || (ea & 7) <= 4;
+}
+
+/* "All except immediate" (the class vasm calls NI): modes 0-6, 7.0-7.3. */
+static bool m68080_ea_not_immediate(uint32_t ea)
+{
+	return (ea >> 3) != M68K_EA_MODE_EXTENDED || (ea & 7) <= 3;
+}
+
+static bool m68080_ea_alterable(uint32_t ea)
+{
+	return (ea >> 3) != M68K_EA_MODE_EXTENDED || (ea & 7) <= 1;
+}
+
+static bool m68080_ea_memory(uint32_t ea)
+{
+	return (ea >> 3) >= M68K_EA_MODE_ADDR_INDIRECT && m68080_ea_exists(ea);
+}
+
+/* Reject a 68080 encoding: nonexistent EA encodings produce no instruction
+ * (like get_ea_mode_op() failures), the rest decode as one invalid word. */
+static bool m68080_reject(m68k_info *info, uint32_t ea)
+{
+	if (!m68080_ea_exists(ea))
+		invalid_insn(info);
+	else
+		d68000_invalid(info);
+	return true;
+}
+
+static bool m68080_get_ea(m68k_info *info, cs_m68k_op *op, uint32_t ea,
+			  uint32_t size)
+{
+	if (!get_ea_mode_op(info, op, ea, size)) {
+		invalid_insn(info);
+		return false;
+	}
+	return true;
+}
+
+/* <vea>: the AMMX and 3-operand FPU effective address. A (bit 8) selects
+ * E8-E23 for the register modes, Bn for the address register modes and a
+ * repeated word for the immediate mode. AMMX instructions count a PC
+ * displacement from the second instruction word, not from the extension
+ * word that holds it (ApolloKnowledgeBase, toolchain/pitfalls/
+ * vasm-68080-encoding-issues.md). */
+static bool m68080_get_vea(m68k_info *info, cs_m68k_op *op, uint32_t ir,
+			   unsigned int imm_size, bool pc_from_second_word)
+{
+	const bool a = (ir >> 8) & 1;
+	const uint32_t mode = (ir >> 3) & 7;
+	const uint32_t reg = ir & 7;
+
+	switch (mode) {
+	case M68K_EA_MODE_DATA_DIRECT:
+		m68080_set_reg(op, a ? M68K_REG_E8 + reg : M68K_REG_D0 + reg);
+		return true;
+	case M68K_EA_MODE_ADDR_DIRECT:
+		m68080_set_reg(op, (a ? M68K_REG_E16 : M68K_REG_E0) + reg);
+		return true;
+	case M68K_EA_MODE_EXTENDED:
+		if (reg == 4) {
+			op->type = M68K_OP_IMM;
+			op->address_mode = M68K_AM_IMMEDIATE;
+			if (a) {
+				/* #imm.W, repeated over the 64 bits. */
+				uint64_t w = read_imm_16(info);
+				op->imm = w * 0x0001000100010001ULL;
+			} else if (imm_size == 8) {
+				op->imm = read_imm_64(info);
+			} else if (imm_size == 4) {
+				op->imm = read_imm_32(info);
+			} else {
+				return false;
+			}
+			return true;
+		}
+		if (a || reg > 3)
+			return false;
+		if (!get_ea_mode_op(info, op, ir & 0x3f, imm_size))
+			return false;
+		if (pc_from_second_word) {
+			if (op->address_mode == M68K_AM_PCI_DISP ||
+			    op->address_mode == M68K_AM_PCI_INDEX_8_BIT_DISP)
+				op->mem.disp -= 2;
+			else if (op->address_mode ==
+					 M68K_AM_PCI_INDEX_BASE_DISP ||
+				 op->address_mode ==
+					 M68K_AM_PC_MEMI_POST_INDEX ||
+				 op->address_mode == M68K_AM_PC_MEMI_PRE_INDEX)
+				op->mem.in_disp -= 2;
+		}
+		return true;
+	default:
+		if (!get_ea_mode_op(info, op, ir & 0x3f, imm_size))
+			return false;
+		if (a && op->mem.base_reg >= M68K_REG_A0 &&
+		    op->mem.base_reg <= M68K_REG_A7)
+			op->mem.base_reg =
+				M68K_REG_B0 + (op->mem.base_reg - M68K_REG_A0);
+		return true;
+	}
+}
+
+static bool m68080_vea_is_immediate(uint32_t ir)
+{
+	return (ir & 0x3f) == M68K_EA_IMMEDIATE_FIELD;
+}
+
+/* ── AMMX: line-F coprocessor ID 7 ──────────────────────────────────
+ *   1111 111A BDmm mrrr  bbbb dddd Mooo oooo
+ * b and d are 5-bit register numbers (B:bbbb, D:dddd). */
+
+enum {
+	AMMX_F_VEA_B_D, /* <vea>,b,d */
+	AMMX_F_VEA_D, /* <vea>,d (b must be the given value) */
+	AMMX_F_VEA_B_DPAIR, /* <vea>,b,d:d+1 */
+	AMMX_F_VEA_DPAIR, /* <vea>,d:d+1 */
+	AMMX_F_B_VEA, /* b,<vea> (d must be the given value) */
+	AMMX_F_B_D_VEA, /* b,d,<vea> */
+	AMMX_F_B_MODE_VEA, /* b,#mode,<vea> */
+	AMMX_F_GROUP_DPAIR, /* a0-a3,d:d+1 */
+	AMMX_F_GROUP_D, /* a0-a3,d */
+};
+
+typedef struct {
+	uint8_t opcode;
+	uint8_t form;
+	uint8_t fixed; /* required b (or d) field for VEA_D/B_VEA */
+	uint16_t insn;
+} ammx_desc;
+
+static const ammx_desc s_ammx_table[] = {
+	{ 0x01, AMMX_F_VEA_D, 0, M68K_INS_LOAD },
+	{ 0x01, AMMX_F_VEA_D, 1, M68K_INS_LOADI },
+	{ 0x02, AMMX_F_GROUP_DPAIR, 0, M68K_INS_TRANSHI },
+	{ 0x03, AMMX_F_GROUP_DPAIR, 0, M68K_INS_TRANSLO },
+	{ 0x04, AMMX_F_B_VEA, 0, M68K_INS_STORE },
+	{ 0x04, AMMX_F_B_VEA, 1, M68K_INS_STOREI },
+	{ 0x05, AMMX_F_B_D_VEA, 0, M68K_INS_STOREM },
+	{ 0x06, AMMX_F_B_D_VEA, 0, M68K_INS_PACKUSWB },
+	{ 0x07, AMMX_F_B_D_VEA, 0, M68K_INS_PACK3216 },
+	{ 0x08, AMMX_F_VEA_B_D, 0, M68K_INS_PAND },
+	{ 0x09, AMMX_F_VEA_B_D, 0, M68K_INS_POR },
+	{ 0x0a, AMMX_F_VEA_B_D, 0, M68K_INS_PEOR },
+	{ 0x0b, AMMX_F_VEA_B_D, 0, M68K_INS_PANDN },
+	{ 0x0c, AMMX_F_VEA_B_D, 0, M68K_INS_PAVGB },
+	{ 0x10, AMMX_F_VEA_B_D, 0, M68K_INS_PADDB },
+	{ 0x11, AMMX_F_VEA_B_D, 0, M68K_INS_PADDW },
+	{ 0x12, AMMX_F_VEA_B_D, 0, M68K_INS_PSUBB },
+	{ 0x13, AMMX_F_VEA_B_D, 0, M68K_INS_PSUBW },
+	{ 0x14, AMMX_F_VEA_B_D, 0, M68K_INS_PADDUSB },
+	{ 0x15, AMMX_F_VEA_B_D, 0, M68K_INS_PADDUSW },
+	{ 0x16, AMMX_F_VEA_B_D, 0, M68K_INS_PSUBUSB },
+	{ 0x17, AMMX_F_VEA_B_D, 0, M68K_INS_PSUBUSW },
+	{ 0x18, AMMX_F_VEA_B_D, 0, M68K_INS_PMUL88 },
+	{ 0x19, AMMX_F_VEA_B_D, 0, M68K_INS_PMULA },
+	{ 0x1a, AMMX_F_VEA_B_D, 0, M68K_INS_PMULH },
+	{ 0x1b, AMMX_F_VEA_B_D, 0, M68K_INS_PMULL },
+	{ 0x1c, AMMX_F_VEA_B_DPAIR, 0, M68K_INS_BFLYB },
+	{ 0x1d, AMMX_F_VEA_B_DPAIR, 0, M68K_INS_BFLYW },
+	{ 0x1e, AMMX_F_VEA_DPAIR, 0, M68K_INS_UNPACK1632 },
+	{ 0x20, AMMX_F_VEA_B_D, 0, M68K_INS_PCMPEQB },
+	{ 0x21, AMMX_F_VEA_B_D, 0, M68K_INS_PCMPEQW },
+	{ 0x22, AMMX_F_VEA_B_D, 0, M68K_INS_PCMPHIB },
+	{ 0x23, AMMX_F_VEA_B_D, 0, M68K_INS_PCMPHIW },
+	{ 0x24, AMMX_F_B_D_VEA, 0, M68K_INS_STOREC },
+	{ 0x25, AMMX_F_B_D_VEA, 0, M68K_INS_STOREILM },
+	{ 0x26, AMMX_F_B_MODE_VEA, 0, M68K_INS_STOREM3 },
+	{ 0x28, AMMX_F_VEA_D, 0, M68K_INS_C2P },
+	{ 0x29, AMMX_F_VEA_B_D, 0, M68K_INS_BSEL },
+	{ 0x2a, AMMX_F_GROUP_D, 0, M68K_INS_MINTERM },
+	{ 0x2c, AMMX_F_VEA_B_D, 0, M68K_INS_PCMPGEB },
+	{ 0x2d, AMMX_F_VEA_B_D, 0, M68K_INS_PCMPGEW },
+	{ 0x2e, AMMX_F_VEA_B_D, 0, M68K_INS_PCMPGTB },
+	{ 0x2f, AMMX_F_VEA_B_D, 0, M68K_INS_PCMPGTW },
+	{ 0x30, AMMX_F_VEA_B_D, 0, M68K_INS_PMINSB },
+	{ 0x31, AMMX_F_VEA_B_D, 0, M68K_INS_PMINSW },
+	{ 0x32, AMMX_F_VEA_B_D, 0, M68K_INS_PMINUB },
+	{ 0x33, AMMX_F_VEA_B_D, 0, M68K_INS_PMINUW },
+	{ 0x34, AMMX_F_VEA_B_D, 0, M68K_INS_PMAXSB },
+	{ 0x35, AMMX_F_VEA_B_D, 0, M68K_INS_PMAXSW },
+	{ 0x36, AMMX_F_VEA_B_D, 0, M68K_INS_PMAXUB },
+	{ 0x37, AMMX_F_VEA_B_D, 0, M68K_INS_PMAXUW },
+	{ 0x38, AMMX_F_VEA_B_D, 0, M68K_INS_LSLQ },
+	{ 0x39, AMMX_F_VEA_B_D, 0, M68K_INS_LSRQ },
+};
+
+/* VPERM #n,a,b,d: 1111 111A BD11 1111  bbbb dddd 0000 aaaa  n (32 bits) */
+static void m68080_vperm(m68k_info *info, uint32_t ext1)
+{
+	const uint32_t ir = info->ir;
+	cs_m68k *ext;
+
+	if (ext1 & 0xf0) {
+		d68000_invalid(info);
+		return;
+	}
+	read_imm_16(info);
+	ext = build_init_op(info, M68K_INS_VPERM, 4, 0);
+	set_imm_operand(&ext->operands[0], read_imm_32(info));
+	m68080_set_reg(&ext->operands[1],
+		       m68080_reg((((ir >> 8) & 1) << 4) | (ext1 & 0xf),
+				  M68K_REG_D0));
+	m68080_set_reg(&ext->operands[2],
+		       m68080_reg((((ir >> 7) & 1) << 4) | (ext1 >> 12),
+				  M68K_REG_D0));
+	m68080_set_reg(&ext->operands[3],
+		       m68080_reg((((ir >> 6) & 1) << 4) | ((ext1 >> 8) & 0xf),
+				  M68K_REG_D0));
+}
+
+/* TEX (An,Ax,Ay*Dm),Dn and REX Dn,(An,Ax,Ay*Dm):
+ *   1111 1110 MN11 0nnn  mmmm dddd 0011 111R  1yyy 0000 0000 1xxx
+ * Only the current form is decoded; the older TEXn.size form with bit 11
+ * of the third word set is marked broken in the manual. */
+static void m68080_tex_rex(m68k_info *info, uint32_t ext1, bool rex)
+{
+	const uint32_t ir = info->ir;
+	uint32_t ext2;
+	cs_m68k *ext;
+	cs_m68k_op *ops;
+	m68k_reg dm, dn;
+
+	if (!imm_bytes_available(info, 4)) {
+		invalid_insn(info);
+		return;
+	}
+	ext2 = (uint32_t)(peek_imm_32(info) & 0xffff);
+	if ((ext2 & 0x8ff8) != 0x8008) {
+		d68000_invalid(info);
+		return;
+	}
+	read_imm_32(info);
+
+	dm = m68080_reg((((ir >> 7) & 1) << 4) | (ext1 >> 12), M68K_REG_D0);
+	dn = m68080_reg((((ir >> 6) & 1) << 4) | ((ext1 >> 8) & 0xf),
+			M68K_REG_D0);
+
+	ext = build_init_op(info, rex ? M68K_INS_REX : M68K_INS_TEX, 5, 0);
+	ops = ext->operands;
+	if (rex) {
+		m68080_set_reg(&ops[0], dn);
+		ops++;
+	}
+	m68080_set_reg(&ops[0], M68K_REG_A0 + (ir & 7));
+	m68080_set_reg(&ops[1], M68K_REG_A0 + (ext2 & 7));
+	m68080_set_reg(&ops[2], M68K_REG_A0 + ((ext2 >> 12) & 7));
+	m68080_set_reg(&ops[3], dm);
+	if (!rex)
+		m68080_set_reg(&ops[4], dn);
+}
+
+static void m68080_ammx(m68k_info *info)
+{
+	const uint32_t ir = info->ir;
+	const uint32_t ext1 = peek_imm_16(info);
+	const unsigned int b = (((ir >> 7) & 1) << 4) | (ext1 >> 12);
+	const unsigned int d = (((ir >> 6) & 1) << 4) | ((ext1 >> 8) & 0xf);
+	const unsigned int opcode = ext1 & 0xff;
+	const ammx_desc *desc = NULL;
+	cs_m68k *ext;
+	cs_m68k_op *vea_op;
+	size_t i;
+
+	if ((ir & 0x3f) == 0x3f) {
+		m68080_vperm(info, ext1);
+		return;
+	}
+	if ((opcode == 0x3e || opcode == 0x3f) && (ir & 0x138) == 0x30) {
+		m68080_tex_rex(info, ext1, opcode == 0x3f);
+		return;
+	}
+
+	for (i = 0; i < ARR_SIZE(s_ammx_table); i++) {
+		const ammx_desc *e = &s_ammx_table[i];
+		if (e->opcode != opcode)
+			continue;
+		if (e->form == AMMX_F_VEA_D && b != e->fixed)
+			continue;
+		if (e->form == AMMX_F_B_VEA && d != e->fixed)
+			continue;
+		desc = e;
+		break;
+	}
+	if (!desc) {
+		m68080_reject(info, ir & 0x3f);
+		return;
+	}
+
+	switch (desc->form) {
+	case AMMX_F_VEA_B_DPAIR:
+	case AMMX_F_VEA_DPAIR:
+	case AMMX_F_GROUP_DPAIR:
+		/* d:d+1 is an even register pair; bit 8 must be clear. */
+		if (d & 1) {
+			m68080_reject(info, ir & 0x3f);
+			return;
+		}
+		break;
+	default:
+		break;
+	}
+	if (desc->form == AMMX_F_VEA_DPAIR && b != 0) {
+		m68080_reject(info, ir & 0x3f);
+		return;
+	}
+	if (desc->form == AMMX_F_GROUP_DPAIR || desc->form == AMMX_F_GROUP_D) {
+		/* The source is a group of four consecutive registers: word 1
+		 * bits 5-4, 1-0 and the B bit are zero, b is zero. */
+		if ((ir & 0xb3) != 0 || (ext1 >> 12) != 0) {
+			d68000_invalid(info);
+			return;
+		}
+	}
+	if ((desc->form == AMMX_F_B_VEA || desc->form == AMMX_F_B_D_VEA ||
+	     desc->form == AMMX_F_B_MODE_VEA) &&
+	    m68080_vea_is_immediate(ir)) {
+		d68000_invalid(info);
+		return;
+	}
+	if (desc->form == AMMX_F_B_MODE_VEA && ((ir >> 6) & 1)) {
+		d68000_invalid(info);
+		return;
+	}
+
+	read_imm_16(info);
+
+	switch (desc->form) {
+	case AMMX_F_VEA_B_D:
+		ext = build_init_op(info, desc->insn, 3, 0);
+		vea_op = &ext->operands[0];
+		m68080_set_reg(&ext->operands[1], m68080_reg(b, M68K_REG_D0));
+		m68080_set_reg(&ext->operands[2], m68080_reg(d, M68K_REG_D0));
+		break;
+	case AMMX_F_VEA_D:
+		ext = build_init_op(info, desc->insn, 2, 0);
+		vea_op = &ext->operands[0];
+		m68080_set_reg(&ext->operands[1], m68080_reg(d, M68K_REG_D0));
+		break;
+	case AMMX_F_VEA_B_DPAIR:
+		ext = build_init_op(info, desc->insn, 3, 0);
+		vea_op = &ext->operands[0];
+		m68080_set_reg(&ext->operands[1], m68080_reg(b, M68K_REG_D0));
+		m68080_set_reg_pair(&ext->operands[2],
+				    m68080_reg(d, M68K_REG_D0),
+				    m68080_reg(d + 1, M68K_REG_D0));
+		break;
+	case AMMX_F_VEA_DPAIR:
+		ext = build_init_op(info, desc->insn, 2, 0);
+		vea_op = &ext->operands[0];
+		m68080_set_reg_pair(&ext->operands[1],
+				    m68080_reg(d, M68K_REG_D0),
+				    m68080_reg(d + 1, M68K_REG_D0));
+		break;
+	case AMMX_F_B_VEA:
+		ext = build_init_op(info, desc->insn, 2, 0);
+		m68080_set_reg(&ext->operands[0], m68080_reg(b, M68K_REG_D0));
+		vea_op = &ext->operands[1];
+		break;
+	case AMMX_F_B_D_VEA:
+		ext = build_init_op(info, desc->insn, 3, 0);
+		m68080_set_reg(&ext->operands[0], m68080_reg(b, M68K_REG_D0));
+		m68080_set_reg(&ext->operands[1], m68080_reg(d, M68K_REG_D0));
+		vea_op = &ext->operands[2];
+		break;
+	case AMMX_F_B_MODE_VEA:
+		/* Bits 11-10 of the mode field are ignored. */
+		ext = build_init_op(info, desc->insn, 3, 0);
+		m68080_set_reg(&ext->operands[0], m68080_reg(b, M68K_REG_D0));
+		set_imm_operand(&ext->operands[1], d & 3);
+		vea_op = &ext->operands[2];
+		break;
+	case AMMX_F_GROUP_DPAIR:
+	case AMMX_F_GROUP_D: {
+		/* Group base: the vea register with mode bit 0 in bit 3 and
+		 * the register's top bit in bit 2: D0, D4, E0, E4 (A = 0) or
+		 * E8, E12, E16, E20 (A = 1). */
+		unsigned int group = (((ir >> 8) & 1) << 4) | (ir & 0xc);
+		m68k_reg first = m68080_reg(group, M68K_REG_D0);
+
+		ext = build_init_op(info, desc->insn, 2, 0);
+		m68080_set_reg_pair(&ext->operands[0], first, first + 3);
+		if (desc->form == AMMX_F_GROUP_D)
+			m68080_set_reg(&ext->operands[1],
+				       m68080_reg(d, M68K_REG_D0));
+		else
+			m68080_set_reg_pair(&ext->operands[1],
+					    m68080_reg(d, M68K_REG_D0),
+					    m68080_reg(d + 1, M68K_REG_D0));
+		return;
+	}
+	default:
+		invalid_insn(info);
+		return;
+	}
+
+	if (!m68080_get_vea(info, vea_op, ir, 8, true))
+		invalid_insn(info);
+}
+
+/* ── 3-operand FPU: line-F coprocessor ID 6 ─────────────────────────
+ *   1111 110A BDmm mrrr  bbbb dddd RSSo oooo
+ * b and d are 5-bit float registers (FP0-FP7, E0-E23). R = 1 takes a
+ * float register source from the low five bits of the first word. */
+static void m68080_fpu3(m68k_info *info)
+{
+	static const struct {
+		uint8_t opcode;
+		uint16_t insn;
+		bool has_b;
+	} ops[] = {
+		{ 0x08, M68K_INS_FADD, true },	 { 0x09, M68K_INS_FSUB, true },
+		{ 0x0b, M68K_INS_FMUL, true },	 { 0x0c, M68K_INS_FDIV, true },
+		{ 0x0d, M68K_INS_FSQRT, false },
+	};
+	static const unsigned int imm_sizes[] = { 4, 4, 8 };
+	const uint32_t ir = info->ir;
+	const uint32_t ext1 = peek_imm_16(info);
+	const unsigned int b = (((ir >> 7) & 1) << 4) | (ext1 >> 12);
+	const unsigned int d = (((ir >> 6) & 1) << 4) | ((ext1 >> 8) & 0xf);
+	const bool r = (ext1 >> 7) & 1;
+	const unsigned int size = (ext1 >> 5) & 3;
+	cs_m68k *ext;
+	cs_m68k_op *op;
+	size_t i;
+	int insn = -1;
+	bool has_b = true;
+
+	for (i = 0; i < ARR_SIZE(ops); i++) {
+		if (ops[i].opcode == (ext1 & 0x1f)) {
+			insn = ops[i].insn;
+			has_b = ops[i].has_b;
+			break;
+		}
+	}
+	if (insn < 0 || (!has_b && (b != 0)) ||
+	    (r ? (ir & 0x120) != 0 : size == 3)) {
+		m68080_reject(info, r ? 0 : ir & 0x3f);
+		return;
+	}
+	read_imm_16(info);
+
+	ext = build_init_op(info, insn, has_b ? 3 : 2, 0);
+	op = &ext->operands[0];
+	if (r) {
+		m68080_set_reg(op, m68080_reg(ir & 0x1f, M68K_REG_FP0));
+	} else {
+		if (size == 0) {
+			ext->op_size.type = M68K_SIZE_TYPE_CPU;
+			ext->op_size.cpu_size = M68K_CPU_SIZE_LONG;
+		} else {
+			ext->op_size.type = M68K_SIZE_TYPE_FPU;
+			ext->op_size.fpu_size = size == 1 ?
+							M68K_FPU_SIZE_SINGLE :
+							M68K_FPU_SIZE_DOUBLE;
+		}
+		if (!m68080_get_vea(info, op, ir, imm_sizes[size], false)) {
+			invalid_insn(info);
+			return;
+		}
+		if (op->type == M68K_OP_IMM && size == 1) {
+			uint32_t bits = (uint32_t)op->imm;
+			op->type = M68K_OP_FP_SINGLE;
+			memcpy(&op->simm, &bits, sizeof(float));
+		} else if (op->type == M68K_OP_IMM && size == 2) {
+			uint64_t bits = op->imm;
+			op->type = M68K_OP_FP_DOUBLE;
+			memcpy(&op->dimm, &bits, sizeof(double));
+		}
+	}
+	if (has_b)
+		m68080_set_reg(&ext->operands[1], m68080_reg(b, M68K_REG_FP0));
+	m68080_set_reg(&ext->operands[has_b ? 2 : 1],
+		       m68080_reg(d, M68K_REG_FP0));
+}
+
+/* ── Integer additions ──────────────────────────────────────────────*/
+
+/* ADDIW.L / CMPIW.L #<16-bit>,<ea> and MOVIW.L #<16-bit>,<ea>: the word is
+ * sign-extended to a long; the operand keeps the encoded word. */
+static void m68080_imm_word_ea(m68k_info *info, m68k_insn insn, uint32_t ea)
+{
+	cs_m68k *ext;
+
+	if (!m68080_ea_not_immediate(ea)) {
+		m68080_reject(info, ea);
+		return;
+	}
+	ext = build_init_op(info, insn, 2, 4);
+	set_imm_operand(&ext->operands[0], read_imm_16(info));
+	m68080_get_ea(info, &ext->operands[1], ea, 4);
+}
+
+/* MOVE2, MOVZ2, MOVEX and MOVEH share the MOVES opcode word (0000 1110
+ * SSmm mrrr) and are told apart by the extension word's low bits, which
+ * are zero for MOVES. */
+static bool m68080_moves_space(m68k_info *info)
+{
+	const uint32_t ir = info->ir;
+	const uint32_t ext1 = peek_imm_16(info);
+	const unsigned int size_field = (ir >> 6) & 3;
+	const uint32_t ea = ir & 0x3f;
+	const bool to_ea = (ext1 >> 11) & 1;
+	unsigned int size;
+	m68k_insn insn;
+	bool pair;
+	cs_m68k *ext;
+	cs_m68k_op *reg_op;
+	cs_m68k_op *ea_op;
+
+	if ((ext1 & 0x43f) == 0x011) { /* MOVE2: B d 0 CCCC 010001 */
+		insn = M68K_INS_MOVE2;
+		pair = true;
+		if (size_field == 3)
+			return m68080_reject(info, ea);
+		size = 1 << size_field;
+	} else if ((ext1 & 0xc3f) == 0x012) { /* MOVZ2: B 00 CCCC 010010 */
+		insn = M68K_INS_MOVZ2;
+		pair = true;
+		if (size_field > 1)
+			return m68080_reject(info, ea);
+		size = 1 << size_field;
+	} else if ((ext1 & 0x7ff) == 0x010) { /* MOVEX: B d 00000010000 */
+		insn = M68K_INS_MOVEX;
+		pair = false;
+		if (size_field == 0 || size_field == 3)
+			return m68080_reject(info, ea);
+		size = 1 << size_field;
+	} else if ((ext1 & 0x7ff) == 0x013) { /* MOVEH: B d 00000010011 */
+		insn = M68K_INS_MOVEH;
+		pair = false;
+		if (size_field != 1)
+			return m68080_reject(info, ea);
+		size = 2;
+	} else {
+		return false;
+	}
+
+	/* MOVE2/MOVZ2 move a register pair to or from memory. */
+	if (!m68080_ea_exists(ea) || (pair && !m68080_ea_memory(ea)) ||
+	    (to_ea && !m68080_ea_alterable(ea)) ||
+	    (insn == M68K_INS_MOVZ2 && to_ea))
+		return m68080_reject(info, ea);
+
+	read_imm_16(info);
+	ext = build_init_op(info, insn, 2, size);
+	reg_op = &ext->operands[to_ea ? 0 : 1];
+	ea_op = &ext->operands[to_ea ? 1 : 0];
+	if (pair)
+		m68080_set_reg_pair(reg_op, m68080_da_reg(ext1 >> 12),
+				    m68080_da_reg((ext1 >> 6) & 0xf));
+	else
+		m68080_set_reg(reg_op, m68080_da_reg(ext1 >> 12));
+	m68080_get_ea(info, ea_op, ea, size);
+	return true;
+}
+
+/* Bcc.S+, BRA.S+, BSR.S+: an odd 8-bit displacement other than $FF
+ * selects the extended short range, -256..-130 and 128..254:
+ *   0xxx xxx1 -> 0000 0000 1xxx xxx0, 1xxx xxx1 -> 1111 1111 0xxx xxx0 */
+static void m68080_branch_s_plus(m68k_info *info)
+{
+	const uint32_t disp8 = info->ir & 0xff;
+	const int displacement = (disp8 & 0x80) ? (int)(disp8 & 0x7e) - 0x100 :
+						  (int)(disp8 & 0x7e) + 0x80;
+	const uint32_t cond = M68K_IR_CONDITION_NIBBLE(info);
+	m68k_insn insn = cond == 0 ? M68K_INS_BRA :
+			 cond == 1 ? M68K_INS_BSR :
+				     s_branch_lut[cond];
+
+	build_relative_branch(info, insn, 1, displacement);
+}
+
+/* MOVEC control registers added by the 68060 and 68080 (AC68080PRM, MOVEC;
+ * MC68060UM section 5.3 for PCR and BUSCR). */
+static m68k_reg m68k_movec_extra_reg(const m68k_info *info, uint32_t rc)
+{
+	const bool m68080 = m68k_has_feature(info, CS_MODE_M68K_080);
+
+	switch (rc) {
+	case 0x008:
+		return m68k_has_feature(info, CS_MODE_M68K_060) && !m68080 ?
+			       M68K_REG_BUSCR :
+			       M68K_REG_INVALID;
+	case 0x808:
+		return m68k_has_feature(info, CS_MODE_M68K_060) ?
+			       M68K_REG_PCR :
+			       M68K_REG_INVALID;
+	case 0x809:
+		return m68080 ? M68K_REG_CCC : M68K_REG_INVALID;
+	case 0x80a:
+		return m68080 ? M68K_REG_IEP1 : M68K_REG_INVALID;
+	case 0x80b:
+		return m68080 ? M68K_REG_IEP2 : M68K_REG_INVALID;
+	case 0x80c:
+		return m68080 ? M68K_REG_BPC : M68K_REG_INVALID;
+	case 0x80d:
+		return m68080 ? M68K_REG_BPW : M68K_REG_INVALID;
+	case 0x80e:
+		return m68080 ? M68K_REG_DCH : M68K_REG_INVALID;
+	case 0x80f:
+		return m68080 ? M68K_REG_DCM : M68K_REG_INVALID;
+	case 0x00a:
+		return m68080 ? M68K_REG_STR : M68K_REG_INVALID;
+	case 0x00b:
+		return m68080 ? M68K_REG_STC : M68K_REG_INVALID;
+	case 0x00c:
+		return m68080 ? M68K_REG_IEP3 : M68K_REG_INVALID;
+	case 0x00d:
+		return m68080 ? M68K_REG_STB : M68K_REG_INVALID;
+	case 0x00e:
+		return m68080 ? M68K_REG_MWR : M68K_REG_INVALID;
+	default:
+		return M68K_REG_INVALID;
+	}
+}
+
+static bool m68080_decode_one(m68k_info *info, bool allow_bank);
+
+/* BANK prefix: 0111 ccc1 00CC AABB (the size field SS must be zero).
+ * AA extends the first bankable source register, BB the destination and
+ * CCccc, when nonzero, names a third (destination) register BBbbb xor
+ * CCccc. Values 01, 10 and 11 select E0-E7, E8-E15 and E16-E23 for data
+ * and float registers. A single register operand (and the DBcc counter)
+ * is selected by BB. Banked address modes are not implemented by any core
+ * and are not decoded.
+ *
+ * The prefix is decoded together with the instruction that follows. When
+ * a nonzero field cannot be applied to that instruction, the prefix is
+ * decoded on its own as "bank #AA, #BB, #CCccc". */
+static m68k_reg m68080_bank_reg(m68k_reg reg, unsigned int bank)
+{
+	if (reg >= M68K_REG_D0 && reg <= M68K_REG_D7)
+		return m68080_reg(bank * 8 + (reg - M68K_REG_D0), M68K_REG_D0);
+	if (reg >= M68K_REG_FP0 && reg <= M68K_REG_FP7)
+		return m68080_reg(bank * 8 + (reg - M68K_REG_FP0),
+				  M68K_REG_FP0);
+	return M68K_REG_INVALID;
+}
+
+static bool m68080_bankable(const cs_m68k_op *op)
+{
+	return op->type == M68K_OP_REG &&
+	       m68080_bank_reg(op->reg, 0) != M68K_REG_INVALID;
+}
+
+static bool m68080_apply_bank(cs_m68k *ext, unsigned int aa, unsigned int bb,
+			      unsigned int third)
+{
+	cs_m68k_op *ops[M68K_OPERAND_COUNT];
+	cs_m68k_op *src = NULL;
+	cs_m68k_op *dst;
+	unsigned int count = 0;
+	unsigned int i;
+	m68k_reg base;
+	unsigned int dst_num;
+
+	for (i = 0; i < ext->op_count; i++)
+		if (ext->operands[i].type != M68K_OP_BR_DISP)
+			ops[count++] = &ext->operands[i];
+	if (count == 0)
+		return false;
+
+	dst = ops[count - 1];
+	if (count > 1)
+		src = ops[0];
+
+	if (aa) {
+		if (src && m68080_bankable(src)) {
+			/* AA banks the source register. */
+		} else if (aa != bb || !m68080_bankable(dst)) {
+			/* A single register operand, or #imm,Rn: AA must
+			 * select the same bank as BB. */
+			return false;
+		}
+	}
+	if ((bb || third) && !m68080_bankable(dst))
+		return false;
+	if (third && ext->op_count >= M68K_OPERAND_COUNT)
+		return false;
+
+	if (dst->reg >= M68K_REG_FP0 && dst->reg <= M68K_REG_FP7) {
+		base = M68K_REG_FP0;
+		dst_num = (bb << 3) | (dst->reg - M68K_REG_FP0);
+	} else {
+		base = M68K_REG_D0;
+		dst_num = (bb << 3) | (dst->reg - M68K_REG_D0);
+	}
+
+	if (aa && src && m68080_bankable(src))
+		src->reg = m68080_bank_reg(src->reg, aa);
+	if (bb)
+		dst->reg = m68080_bank_reg(dst->reg, bb);
+	if (third) {
+		cs_m68k_op *d = &ext->operands[ext->op_count++];
+		memset(d, 0, sizeof(*d));
+		m68080_set_reg(d, m68080_reg(dst_num ^ third, base));
+		if (base == M68K_REG_FP0 && d->reg < M68K_REG_E0)
+			d->address_mode = M68K_AM_NONE;
+	}
+	return true;
+}
+
+static void m68080_bank_alone(m68k_info *info, uint32_t prefix)
+{
+	cs_m68k *ext;
+
+	info->pc = (uint32_t)info->baseAddress + 2;
+	memset(&info->extension, 0, sizeof(info->extension));
+	info->extension.op_size.type = M68K_SIZE_TYPE_CPU;
+	info->groups_count = 0;
+	info->ir = prefix;
+	ext = build_init_op(info, M68K_INS_BANK, 3, 0);
+	set_imm_operand(&ext->operands[0], (prefix >> 2) & 3);
+	set_imm_operand(&ext->operands[1], prefix & 3);
+	set_imm_operand(&ext->operands[2],
+			(((prefix >> 4) & 3) << 3) | ((prefix >> 9) & 7));
+}
+
+static void m68080_bank(m68k_info *info)
+{
+	const uint32_t prefix = info->ir;
+	const unsigned int aa = (prefix >> 2) & 3;
+	const unsigned int bb = prefix & 3;
+	const unsigned int third = (((prefix >> 4) & 3) << 3) |
+				   ((prefix >> 9) & 7);
+	const uint32_t next = peek_imm_16(info);
+	cs_m68k *ext = &info->extension;
+	int i;
+
+	/* Another prefix, AMMX and the 3-operand FPU have their own
+	 * register fields. */
+	if (!imm_bytes_available(info, 2) || (next & 0xf100) == 0x7100 ||
+	    (next & 0xfc00) == 0xfc00 || !(aa | bb | third)) {
+		m68080_bank_alone(info, prefix);
+		return;
+	}
+
+	memset(ext, 0, sizeof(*ext));
+	ext->op_size.type = M68K_SIZE_TYPE_CPU;
+	for (i = 0; i < M68K_OPERAND_COUNT; ++i)
+		ext->operands[i].type = M68K_OP_REG;
+
+	if (!m68080_decode_one(info, false) ||
+	    info->inst->Opcode == M68K_INS_INVALID ||
+	    !m68080_apply_bank(ext, aa, bb, third)) {
+		m68080_bank_alone(info, prefix);
+		return;
+	}
+}
+
+/* Decode a 68080-only encoding at info->pc. Returns false, without reading
+ * anything, when the word is left to the 680x0 decoder. */
+static bool m68080_decode(m68k_info *info, bool allow_bank)
+{
+	const uint32_t ir = peek_imm_16(info);
+	uint32_t ext1;
+
+	if (allow_bank && (ir & 0xf1c0) == 0x7100) {
+		info->ir = read_imm_16(info);
+		m68080_bank(info);
+		return true;
+	}
+	if ((ir & 0xfe00) == 0xfe00) {
+		info->ir = read_imm_16(info);
+		m68080_ammx(info);
+		return true;
+	}
+	if ((ir & 0xfe00) == 0xfc00) {
+		info->ir = read_imm_16(info);
+		m68080_fpu3(info);
+		return true;
+	}
+
+	switch (ir & 0xffc0) {
+	case 0x06c0: /* ADDIW.L #<data>,<ea> (replaces CALLM/RTM) */
+		info->ir = read_imm_16(info);
+		m68080_imm_word_ea(info, M68K_INS_ADDIW, ir & 0x3f);
+		return true;
+	case 0x4e00: /* CMPIW.L #<data>,<ea> */
+		info->ir = read_imm_16(info);
+		m68080_imm_word_ea(info, M68K_INS_CMPIW, ir & 0x3f);
+		return true;
+	case 0xf600: /* TOUCH <ea>: 1111 0110 00 110 rrr (MOVE16 space) */
+		if ((ir & 0x38) != 0x30)
+			return false;
+		info->ir = read_imm_16(info);
+		{
+			cs_m68k *ext =
+				build_init_op(info, M68K_INS_TOUCH, 1, 0);
+			m68080_get_ea(info, &ext->operands[0], ir & 0x3f, 1);
+		}
+		return true;
+	default:
+		break;
+	}
+
+	/* EXTUB.L/EXTUW.L Dn: 0100 1SS1 1100 0rrr, SS = 01 (byte) or 10. */
+	if ((ir & 0xf9f8) == 0x49c0 && ((ir >> 9) & 3) != 0 &&
+	    ((ir >> 9) & 3) != 3) {
+		cs_m68k *ext;
+		info->ir = read_imm_16(info);
+		ext = build_init_op(info,
+				    ((ir >> 9) & 3) == 1 ? M68K_INS_EXTUB :
+							   M68K_INS_EXTUW,
+				    1, 4);
+		m68080_set_reg(&ext->operands[0], M68K_REG_D0 + (ir & 7));
+		return true;
+	}
+
+	/* PERM #n,Ra,Rb: 0100 1100 1100 aaaa  bbbb nnnn nnnn nnnn */
+	if ((ir & 0xfff0) == 0x4cc0) {
+		cs_m68k *ext;
+		info->ir = read_imm_16(info);
+		ext1 = read_imm_16(info);
+		ext = build_init_op(info, M68K_INS_PERM, 3, 0);
+		set_imm_operand(&ext->operands[0], ext1 & 0xfff);
+		m68080_set_reg(&ext->operands[1], m68080_da_reg(ir & 0xf));
+		m68080_set_reg(&ext->operands[2], m68080_da_reg(ext1 >> 12));
+		return true;
+	}
+
+	/* LEA <ea>,Bn: 0100 bbb1 01mm mrrr (control <ea>) */
+	if ((ir & 0xf1c0) == 0x4140) {
+		cs_m68k *ext;
+		uint32_t ea = ir & 0x3f;
+		info->ir = read_imm_16(info);
+		if (!m68k_ea_is_control(ea)) {
+			m68080_reject(info, ea);
+			return true;
+		}
+		ext = build_init_op(info, M68K_INS_LEA, 2, 4);
+		if (m68080_get_ea(info, &ext->operands[0], ea, 4))
+			m68080_set_reg(&ext->operands[1],
+				       M68K_REG_B0 + ((ir >> 9) & 7));
+		return true;
+	}
+
+	/* LEA (Bn),An: 0100 aaa1 1100 1bbb */
+	if ((ir & 0xf1f8) == 0x41c8) {
+		cs_m68k *ext;
+		info->ir = read_imm_16(info);
+		ext = build_init_op(info, M68K_INS_LEA, 2, 4);
+		ext->operands[0].type = M68K_OP_MEM;
+		ext->operands[0].address_mode = M68K_AM_REGI_ADDR;
+		ext->operands[0].mem.base_reg = M68K_REG_B0 + (ir & 7);
+		m68080_set_reg(&ext->operands[1],
+			       M68K_REG_A0 + ((ir >> 9) & 7));
+		return true;
+	}
+
+	/* ADDQ.L/SUBQ.L #<data>,Bn: 0101 ddd0 0000 1bbb / 0101 ddd1 0000 1bbb */
+	if ((ir & 0xf0f8) == 0x5008) {
+		cs_m68k *ext;
+		uint32_t data = (ir >> 9) & 7;
+		info->ir = read_imm_16(info);
+		ext = build_init_op(
+			info, (ir & 0x100) ? M68K_INS_SUBQ : M68K_INS_ADDQ, 2,
+			4);
+		set_imm_operand(&ext->operands[0], data ? data : 8);
+		m68080_set_reg(&ext->operands[1], M68K_REG_B0 + (ir & 7));
+		return true;
+	}
+
+	/* CMP.L Bn,Dn: 1100 ddd1 1000 0bbb */
+	if ((ir & 0xf1f8) == 0xc180) {
+		cs_m68k *ext;
+		info->ir = read_imm_16(info);
+		ext = build_init_op(info, M68K_INS_CMP, 2, 4);
+		m68080_set_reg(&ext->operands[0], M68K_REG_B0 + (ir & 7));
+		m68080_set_reg(&ext->operands[1],
+			       M68K_REG_D0 + ((ir >> 9) & 7));
+		return true;
+	}
+
+	/* MOVEA.L <ea>,Bn: 0001 bbb0 01mm mrrr, <ea> is not An/Bn.
+	 * MOVE.L Bn,<ea>: 0001 RRRM MM00 1bbb, <ea> is not An/Bn. */
+	if ((ir & 0xf000) == 0x1000) {
+		const uint32_t dst_ea = ((ir >> 9) & 7) | ((ir >> 3) & 0x38);
+		const uint32_t src_ea = ir & 0x3f;
+		const bool to_b = (dst_ea >> 3) == M68K_EA_MODE_ADDR_DIRECT;
+		const bool from_b = (src_ea >> 3) == M68K_EA_MODE_ADDR_DIRECT;
+		cs_m68k *ext;
+
+		if (!to_b && !from_b)
+			return false;
+		info->ir = read_imm_16(info);
+		if (to_b && from_b) {
+			d68000_invalid(info);
+			return true;
+		}
+		ext = build_init_op(info, to_b ? M68K_INS_MOVEA : M68K_INS_MOVE,
+				    2, 4);
+		if (to_b) {
+			if (!m68080_ea_exists(src_ea)) {
+				invalid_insn(info);
+				return true;
+			}
+			if (m68080_get_ea(info, &ext->operands[0], src_ea, 4))
+				m68080_set_reg(&ext->operands[1],
+					       M68K_REG_B0 + (dst_ea & 7));
+		} else {
+			if (!m68080_ea_alterable(dst_ea)) {
+				m68080_reject(info, dst_ea);
+				return true;
+			}
+			m68080_set_reg(&ext->operands[0],
+				       M68K_REG_B0 + (src_ea & 7));
+			m68080_get_ea(info, &ext->operands[1], dst_ea, 4);
+		}
+		return true;
+	}
+
+	/* MOVIW.L #<data>,<ea>: 0011 RRRM MM11 1101 (MOVE.W from EA 7.5) */
+	if ((ir & 0xf03f) == 0x303d) {
+		info->ir = read_imm_16(info);
+		m68080_imm_word_ea(info, M68K_INS_MOVIW,
+				   ((ir >> 9) & 7) | ((ir >> 3) & 0x38));
+		return true;
+	}
+
+	/* MOVE2/MOVZ2/MOVEX/MOVEH in the MOVES opcode space. */
+	if ((ir & 0xff00) == 0x0e00) {
+		info->ir = ir;
+		info->pc += 2;
+		if (m68080_moves_space(info))
+			return true;
+		info->pc -= 2;
+		return false;
+	}
+
+	/* Bcc.S+/BRA.S+/BSR.S+ */
+	if ((ir & 0xf001) == 0x6001 && (ir & 0xff) != 0xff) {
+		info->ir = read_imm_16(info);
+		m68080_branch_s_plus(info);
+		return true;
+	}
+
+	/* DBcc.L Dn,<label>: DBcc with bit 0 of the displacement set. */
+	if ((ir & 0xf0f8) == 0x50c8 && (peek_imm_32(info) & 1)) {
+		int32_t disp;
+		info->ir = read_imm_16(info);
+		disp = make_int_16(read_imm_16(info) & 0xfffe);
+		build_dbcc(info, 4, disp);
+		return true;
+	}
+
+	/* FDBcc.L Dn,<label>: FDBcc with bit 0 of the displacement set. */
+	if ((ir & 0xfff8) == 0xf248 && imm_bytes_available(info, 6)) {
+		const uint32_t cond = m68k_read_safe_16(info, info->pc + 2);
+		const uint32_t disp_word =
+			m68k_read_safe_16(info, info->pc + 4);
+		cs_m68k *ext;
+
+		if (!(disp_word & 1) || (cond & 0xffc0))
+			return false;
+		info->ir = read_imm_16(info);
+		read_imm_16(info);
+		read_imm_16(info);
+		ext = build_init_fpu_condition_op(info, M68K_INS_FDBF, cond, 2,
+						  4);
+		ext->operands[0].address_mode = M68K_AM_REG_DIRECT_DATA;
+		ext->operands[0].reg = M68K_REG_D0 + (ir & 7);
+		make_cpbcc_operand(&ext->operands[1], M68K_OP_BR_DISP_SIZE_WORD,
+				   make_int_16(disp_word & 0xfffe) + 2);
+		set_insn_group(info, M68K_GRP_JUMP);
+		set_insn_group(info, M68K_GRP_BRANCH_RELATIVE);
+		return true;
+	}
+
+	/* FMOVERZ/FMOVEURZ FPn,<ea>: FMOVE to <ea> (011s ssnn n) in byte,
+	 * word or long format with opmode 1 (round to zero) or 3 (unsigned,
+	 * round to zero). */
+	if ((ir & 0xffc0) == 0xf200) {
+		const uint32_t ea = ir & 0x3f;
+		const unsigned int f = (peek_imm_32(info) >> 10) & 7;
+		const unsigned int o = peek_imm_32(info) & 0x7f;
+		unsigned int size;
+		cs_m68k *ext;
+
+		ext1 = peek_imm_32(info) & 0xffff;
+		if ((ext1 & 0xe000) != 0x6000 || (o != 1 && o != 3) ||
+		    (f != M68K_FPSRC_LONG && f != M68K_FPSRC_WORD &&
+		     f != M68K_FPSRC_BYTE))
+			return false;
+		info->ir = read_imm_16(info);
+		if (!m68080_ea_alterable(ea) ||
+		    (ea >> 3) == M68K_EA_MODE_ADDR_DIRECT) {
+			m68080_reject(info, ea);
+			return true;
+		}
+		read_imm_16(info);
+		size = f == M68K_FPSRC_LONG ? 4 : f == M68K_FPSRC_WORD ? 2 : 1;
+		ext = build_init_op(
+			info, o == 1 ? M68K_INS_FMOVERZ : M68K_INS_FMOVEURZ, 2,
+			size);
+		m68080_set_reg(&ext->operands[0],
+			       M68K_REG_FP0 + ((ext1 >> 7) & 7));
+		m68080_get_ea(info, &ext->operands[1], ea, size);
+		return true;
+	}
+
+	return false;
+}
+
+static bool m68080_decode_one(m68k_info *info, bool allow_bank)
+{
+	if (m68080_decode(info, allow_bank))
+		return true;
+
+	info->ir = peek_imm_16(info);
+	if (!instruction_is_valid(info, peek_imm_32(info) & 0xffff))
+		return false;
+	info->ir = read_imm_16(info);
+	g_instruction_table[info->ir].instruction(info);
+	return true;
+}
+
 static int exists_reg_list(const uint16_t *regs, uint8_t count, m68k_reg reg)
 {
 	uint8_t i;
@@ -5830,6 +6904,7 @@ static uint32_t m68k_disassemble(m68k_info *info, uint32_t pc)
 	cs_m68k *ext = &info->extension;
 	int i;
 	uint32_t size;
+	bool decoded;
 
 	inst->Opcode = M68K_INS_INVALID;
 
@@ -5839,10 +6914,18 @@ static uint32_t m68k_disassemble(m68k_info *info, uint32_t pc)
 	for (i = 0; i < M68K_OPERAND_COUNT; ++i)
 		ext->operands[i].type = M68K_OP_REG;
 
-	info->ir = peek_imm_16(info);
-	if (instruction_is_valid(info, peek_imm_32(info) & 0xffff)) {
-		info->ir = read_imm_16(info);
-		g_instruction_table[info->ir].instruction(info);
+	if (m68k_has_feature(info, CS_MODE_M68K_080)) {
+		decoded = m68080_decode_one(info, true);
+	} else {
+		info->ir = peek_imm_16(info);
+		decoded =
+			instruction_is_valid(info, peek_imm_32(info) & 0xffff);
+		if (decoded) {
+			info->ir = read_imm_16(info);
+			g_instruction_table[info->ir].instruction(info);
+		}
+	}
+	if (decoded) {
 		for (i = 0; i < ext->op_count; ++i) {
 			if (!valid_operand(&ext->operands[i])) {
 				invalid_insn(info);

@@ -103,6 +103,7 @@ static const cs_enum_id_map test_mode_map[] = {
 	{ .str = "CS_MODE_M68K_030", .val = CS_MODE_M68K_030 },
 	{ .str = "CS_MODE_M68K_040", .val = CS_MODE_M68K_040 },
 	{ .str = "CS_MODE_M68K_060", .val = CS_MODE_M68K_060 },
+	{ .str = "CS_MODE_M68K_080", .val = CS_MODE_M68K_080 },
 	{ .str = "CS_MODE_M68K_CFV1", .val = CS_MODE_M68K_CFV1 },
 	{ .str = "CS_MODE_M68K_CFV2", .val = CS_MODE_M68K_CFV2 },
 	{ .str = "CS_MODE_M68K_CFV3", .val = CS_MODE_M68K_CFV3 },

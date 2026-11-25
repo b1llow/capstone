@@ -331,6 +331,9 @@ static inline bool m68k_has_feature(const m68k_info *info,
 
 	if (available & CS_MODE_M68K_CPU32)
 		available |= CS_MODE_M68K_020;
+	/* The Apollo 68080 runs the 68060 instruction set. */
+	if (available & CS_MODE_M68K_080)
+		available |= CS_MODE_M68K_060;
 	if (available & CS_MODE_M68K_CF_ISA_A_PLUS)
 		available |= CS_MODE_M68K_CF_ISA_A;
 	if (available & CS_MODE_M68K_CF_ISA_B)
